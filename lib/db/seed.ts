@@ -192,13 +192,13 @@ async function seed() {
     // 7. Seed Categories
     console.log('Seeding Categories...');
     const categoriesData = [
-      { name: 'Vegetables', slug: 'vegetables', description: 'Fresh farm vegetables' },
-      { name: 'Fruits', slug: 'fruits', description: 'Fresh seasonal fruits' },
-      { name: 'Dairy & Eggs', slug: 'dairy-eggs', description: 'Milk, eggs, cheese, paneer, and curd' },
-      { name: 'Meats & Poultry', slug: 'meats-poultry', description: 'Fresh chicken, fish, mutton, etc.' },
-      { name: 'Cloud Kitchen', slug: 'cloud-kitchen', description: 'Freshly cooked ready meals' },
-      { name: 'Healthy Meals', slug: 'healthy-meals', description: 'Keto, low-carb diet subscription meals' },
-      { name: 'Packaged Groceries', slug: 'packaged-groceries', description: 'Standard pantry supplies' },
+      { name: 'Vegetables', slug: 'vegetables', description: 'Fresh farm vegetables', imageUrl: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Fruits', slug: 'fruits', description: 'Fresh seasonal fruits', imageUrl: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Dairy & Eggs', slug: 'dairy-eggs', description: 'Milk, eggs, cheese, paneer, and curd', imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Meats & Poultry', slug: 'meats-poultry', description: 'Fresh chicken, fish, mutton, etc.', imageUrl: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Cloud Kitchen', slug: 'cloud-kitchen', description: 'Freshly cooked ready meals', imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Healthy Meals', slug: 'healthy-meals', description: 'Keto, low-carb diet subscription meals', imageUrl: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Packaged Groceries', slug: 'packaged-groceries', description: 'Standard pantry supplies', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60' },
     ];
 
     const insertedCategories: Record<string, string> = {};

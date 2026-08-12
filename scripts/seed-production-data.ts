@@ -52,10 +52,10 @@ async function seed() {
     // 3. Seed Real Indian Categories
     console.log('Seeding Categories...');
     const categoriesData = [
-      { name: 'Vegetables', slug: 'vegetables', description: 'Fresh farm-sourced local vegetables' },
-      { name: 'Dairy & Eggs', slug: 'dairy-eggs', description: 'Fresh milk, curd, paneer, and eggs' },
-      { name: 'Groceries', slug: 'groceries', description: 'Standard Indian pantry staples, atta, rice, and oils' },
-      { name: 'Fresh Meat', slug: 'fresh-meat', description: 'Fresh chicken, mutton, and meats' },
+      { name: 'Vegetables', slug: 'vegetables', description: 'Fresh farm-sourced local vegetables', imageUrl: 'https://images.unsplash.com/photo-1597362925123-77861d3fbac7?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Dairy & Eggs', slug: 'dairy-eggs', description: 'Fresh milk, curd, paneer, and eggs', imageUrl: 'https://images.unsplash.com/photo-1563636619-e9143da7973b?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Groceries', slug: 'groceries', description: 'Standard Indian pantry staples, atta, rice, and oils', imageUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60' },
+      { name: 'Fresh Meat', slug: 'fresh-meat', description: 'Fresh chicken, mutton, and meats', imageUrl: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&auto=format&fit=crop&q=60' },
     ];
 
     const insertedCategories: Record<string, string> = {};
@@ -65,6 +65,7 @@ async function seed() {
         name: cat.name,
         slug: cat.slug,
         description: cat.description,
+        imageUrl: cat.imageUrl,
         status: 'active',
       }).returning();
       insertedCategories[cat.name] = res.id;

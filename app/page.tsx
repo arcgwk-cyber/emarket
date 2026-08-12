@@ -260,7 +260,7 @@ export default async function HomePage() {
                 {/* Product Image */}
                 <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-50 dark:bg-zinc-950 p-1">
                   <Image 
-                    src={prod.imageUrl || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&auto=format&fit=crop&q=60'}
+                    src={prod.images?.[0] || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&auto=format&fit=crop&q=60'}
                     alt={prod.name}
                     fill
                     className="rounded-lg object-cover p-0.5 group-hover:scale-105 transition-transform duration-300"
