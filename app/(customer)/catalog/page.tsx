@@ -149,10 +149,12 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     }));
   } catch (error: any) {
     console.error('Catalog page database query error:', error);
+    const cause = error.cause || {};
     errorMsg = `Message: ${error.message}\n` +
-               `Code: ${error.code || 'N/A'}\n` +
-               `Detail: ${error.detail || 'N/A'}\n` +
-               `Hint: ${error.hint || 'N/A'}\n` +
+               `Underlying Error: ${cause.message || 'N/A'}\n` +
+               `Code: ${cause.code || error.code || 'N/A'}\n` +
+               `Detail: ${cause.detail || error.detail || 'N/A'}\n` +
+               `Hint: ${cause.hint || error.hint || 'N/A'}\n` +
                `Stack: ${error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'N/A'}`;
   }
 
