@@ -149,7 +149,11 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
     }));
   } catch (error: any) {
     console.error('Catalog page database query error:', error);
-    errorMsg = error.message || String(error);
+    errorMsg = `Message: ${error.message}\n` +
+               `Code: ${error.code || 'N/A'}\n` +
+               `Detail: ${error.detail || 'N/A'}\n` +
+               `Hint: ${error.hint || 'N/A'}\n` +
+               `Stack: ${error.stack ? error.stack.split('\n').slice(0, 3).join('\n') : 'N/A'}`;
   }
 
   if (errorMsg) {
