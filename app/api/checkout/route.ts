@@ -15,7 +15,7 @@ import {
   stores
 } from '@/lib/db/schema';
 import { getCurrentUser } from '@/lib/services/auth';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 
 const checkoutSchema = z.object({
@@ -67,13 +67,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const items = await db.query.cartItems.findMany({
+    const dbItems = await db.query.cartItems.findMany({
       where: eq(cartItems.cartId, userCart.id),
       with: {
         product: true,
         variant: true,
       },
     });
+
+    const items = dbItems.filter((item: any) => item.product !== null);
+
+    // Auto-clean database for any deleted product references
+    const orphanedIds = dbItems.filter((item: any) => item.product === null).map((item: any) => item.id);
+    if (orphanedIds.length > 0) {
+      await db.delete(cartItems).where(inArray(cartItems.id, orphanedIds));
+    }
 
     if (items.length === 0) {
       return NextResponse.json(

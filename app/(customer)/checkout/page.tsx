@@ -9,7 +9,7 @@ import {
   carts, 
   cartItems 
 } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, inArray } from 'drizzle-orm';
 
 export default async function CheckoutPage() {
   const user = await getCurrentUser();
@@ -35,7 +35,15 @@ export default async function CheckoutPage() {
     },
   });
 
-  if (dbItems.length === 0) {
+  const validItems = dbItems.filter((item: any) => item.product !== null);
+
+  // Auto-clean database for any deleted product references
+  const orphanedIds = dbItems.filter((item: any) => item.product === null).map((item: any) => item.id);
+  if (orphanedIds.length > 0) {
+    await db.delete(cartItems).where(inArray(cartItems.id, orphanedIds));
+  }
+
+  if (validItems.length === 0) {
     redirect('/cart');
   }
 
@@ -53,7 +61,7 @@ export default async function CheckoutPage() {
   // 5. Map schemas to component interfaces & compute subtotal
   let subtotal = 0;
   
-  const mappedCartItems = dbItems.map((item: any) => {
+  const mappedCartItems = validItems.map((item: any) => {
     const price = item.variant ? item.variant.sellingPrice : item.product.sellingPrice;
     subtotal += parseFloat(price) * item.quantity;
     

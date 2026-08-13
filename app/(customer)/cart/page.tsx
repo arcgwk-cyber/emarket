@@ -3,7 +3,7 @@ import CartWrapper from '@/components/customer/CartWrapper';
 import { getCurrentUser } from '@/lib/services/auth';
 import { db } from '@/lib/db';
 import { carts, cartItems } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 export default async function CartPage() {
   const user = await getCurrentUser();
@@ -28,8 +28,16 @@ export default async function CartPage() {
         variant: true,
       },
     });
+
+    const validItems = dbItems.filter((item: any) => item.product !== null);
     
-    items = dbItems.map((item: any) => ({
+    // Auto-clean database for any deleted product references
+    const orphanedIds = dbItems.filter((item: any) => item.product === null).map((item: any) => item.id);
+    if (orphanedIds.length > 0) {
+      await db.delete(cartItems).where(inArray(cartItems.id, orphanedIds));
+    }
+    
+    items = validItems.map((item: any) => ({
       id: item.id,
       productId: item.productId,
       variantId: item.variantId,
