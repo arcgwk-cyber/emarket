@@ -9,7 +9,6 @@ import {
   Trash2, 
   X, 
   Loader2, 
-  ChevronLeft, 
   Tag, 
   Sparkles,
   Camera,
@@ -19,7 +18,6 @@ import {
   FileSpreadsheet,
   Image as ImageIcon
 } from 'lucide-react';
-import Link from 'next/link';
 
 interface Product {
   id: string;
@@ -55,16 +53,24 @@ interface ProductsManagerProps {
   initialProducts: Product[];
   categoriesList: Category[];
   brandsList: Brand[];
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  initialSearch: string;
 }
 
 export default function ProductsManager({ 
   initialProducts, 
   categoriesList, 
-  brandsList 
+  brandsList,
+  currentPage,
+  totalPages,
+  totalCount,
+  initialSearch
 }: ProductsManagerProps) {
   const router = useRouter();
   const [productsList, setProductsList] = useState<Product[]>(initialProducts);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   
   // File upload refs
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,7 +145,26 @@ export default function ProductsManager({
     setIsModalOpen(true);
   };
 
-  // Helper to compress and convert images to Base64 in browser (to bypass serverless readonly filesystem)
+  // Image Upload Logic (Shared for local file and camera)
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, isCamera = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+
+    try {
+      const base64Url = await compressAndConvertToBase64(file);
+      setImages(prev => [...prev, base64Url]);
+    } catch (err) {
+      console.error('Image compression error:', err);
+      alert('Failed to process image file.');
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
+
   const compressAndConvertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -185,27 +210,6 @@ export default function ProductsManager({
     });
   };
 
-  // Image Upload Logic (Shared for local file and camera)
-  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, isCamera = false) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingImage(true);
-
-    try {
-      const base64Url = await compressAndConvertToBase64(file);
-      setImages(prev => [...prev, base64Url]);
-    } catch (err) {
-      console.error('Image compression error:', err);
-      alert('Failed to process image file.');
-    } finally {
-      setUploadingImage(false);
-      // Clear inputs
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      if (cameraInputRef.current) cameraInputRef.current.value = '';
-    }
-  };
-
   const handleAddLink = () => {
     if (!imageLink.trim()) return;
     setImages(prev => [...prev, imageLink.trim()]);
@@ -216,7 +220,6 @@ export default function ProductsManager({
     setImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
   };
 
-  // Save changes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -338,7 +341,6 @@ export default function ProductsManager({
         const line = lines[i].trim();
         if (!line) continue;
 
-        // Correctly split and trim CSV columns, strip outer quotes
         const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
         const item: any = {};
         
@@ -393,10 +395,14 @@ export default function ProductsManager({
     reader.readAsText(file);
   };
 
-  const filteredProducts = productsList.filter(prod =>
-    prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    prod.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    router.push(`?q=${encodeURIComponent(searchQuery)}&page=1`);
+  };
+
+  const handlePageChange = (page: number) => {
+    router.push(`?q=${encodeURIComponent(searchQuery)}&page=${page}`);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
@@ -405,16 +411,7 @@ export default function ProductsManager({
         {/* Navigation Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
           <div>
-            <div className="flex items-center gap-2">
-              <Link 
-                href="/admin" 
-                className="text-xs font-bold text-zinc-500 hover:text-emerald-500 flex items-center gap-1"
-              >
-                <ChevronLeft className="h-4 w-4" />
-                Platform Dashboard
-              </Link>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2 flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
               <Tag className="h-6 w-6 text-emerald-500" />
               Products Management
             </h1>
@@ -459,98 +456,146 @@ export default function ProductsManager({
         </div>
 
         {/* Search */}
-        <div className="relative max-w-md">
-          <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-          <input
-            type="text"
-            placeholder="Search products by name or SKU..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-10 w-full rounded-full border border-zinc-200 bg-white pl-10 pr-4 text-xs font-medium outline-none transition-all focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
-          />
-        </div>
+        <form onSubmit={handleSearchSubmit} className="flex gap-2 max-w-md">
+          <div className="relative flex-1">
+            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search products by name or SKU..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-10 w-full rounded-full border border-zinc-200 bg-white pl-10 pr-4 text-xs font-medium outline-none transition-all focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
+            />
+          </div>
+          <button
+            type="submit"
+            className="h-10 px-5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
+          >
+            Search
+          </button>
+        </form>
 
         {/* Table list */}
         <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-3xl shadow-sm overflow-hidden">
-          {filteredProducts.length === 0 ? (
+          {productsList.length === 0 ? (
             <div className="p-12 text-center text-xs text-zinc-500 font-medium">
-              No products found matching your search.
+              No products found. Add a product or try a different search.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-zinc-50 dark:bg-zinc-850/50 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-                    <th className="p-4 pl-6">Product Details</th>
-                    <th className="p-4">SKU</th>
-                    <th className="p-4">Category</th>
-                    <th className="p-4">Brand</th>
-                    <th className="p-4">MRP / Selling</th>
-                    <th className="p-4 text-center">Featured</th>
-                    <th className="p-4 pr-6 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-750 dark:text-zinc-300">
-                  {filteredProducts.map((prod) => (
-                    <tr key={prod.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/20">
-                      <td className="p-4 pl-6 flex items-center gap-3">
-                        <div className="h-10 w-10 shrink-0 rounded-xl bg-zinc-50 dark:bg-zinc-800 overflow-hidden border border-zinc-100 dark:border-zinc-855 flex items-center justify-center">
-                          {prod.images && prod.images.length > 0 ? (
-                            <img 
-                              src={prod.images[0]} 
-                              alt={prod.name} 
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <ImageIcon className="h-4 w-4 text-zinc-400" />
-                          )}
-                        </div>
-                        <div>
-                          <span className="font-bold text-zinc-900 dark:text-zinc-50 block truncate max-w-xs">
-                            {prod.name}
-                          </span>
-                          <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
-                            Unit: 1 {prod.stockType}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 font-mono">{prod.sku}</td>
-                      <td className="p-4">{prod.category?.name || 'Unassigned'}</td>
-                      <td className="p-4">{prod.brand?.name || 'None'}</td>
-                      <td className="p-4">
-                        <span className="line-through text-zinc-450 mr-2">₹{prod.mrp}</span>
-                        <span className="font-black text-zinc-900 dark:text-zinc-50">₹{prod.sellingPrice}</span>
-                      </td>
-                      <td className="p-4 text-center">
-                        {prod.isFeatured ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase dark:bg-emerald-950/20 dark:text-emerald-400">
-                            Yes
-                          </span>
-                        ) : (
-                          <span className="text-zinc-400 font-medium">No</span>
-                        )}
-                      </td>
-                      <td className="p-4 pr-6 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openEditModal(prod)}
-                            className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
-                          >
-                            <Edit className="h-4.5 w-4.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(prod.id)}
-                            className="p-1.5 rounded-lg border border-rose-100 hover:bg-rose-50 text-rose-500 dark:border-rose-950/20 dark:hover:bg-rose-950/10 transition-colors cursor-pointer"
-                          >
-                            <Trash2 className="h-4.5 w-4.5" />
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-zinc-50 dark:bg-zinc-850/50 text-[10px] font-black uppercase tracking-wider text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+                      <th className="p-4 pl-6">Product Details</th>
+                      <th className="p-4">SKU</th>
+                      <th className="p-4">Category</th>
+                      <th className="p-4">Brand</th>
+                      <th className="p-4">MRP / Selling</th>
+                      <th className="p-4 text-center">Featured</th>
+                      <th className="p-4 pr-6 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-750 dark:text-zinc-300">
+                    {productsList.map((prod) => (
+                      <tr key={prod.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/20">
+                        <td className="p-4 pl-6 flex items-center gap-3">
+                          <div className="h-10 w-10 shrink-0 rounded-xl bg-zinc-50 dark:bg-zinc-800 overflow-hidden border border-zinc-100 dark:border-zinc-855 flex items-center justify-center">
+                            {prod.images && prod.images.length > 0 ? (
+                              <img 
+                                src={prod.images[0]} 
+                                alt={prod.name} 
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <ImageIcon className="h-4 w-4 text-zinc-400" />
+                            )}
+                          </div>
+                          <div>
+                            <span className="font-bold text-zinc-900 dark:text-zinc-50 block truncate max-w-xs">
+                              {prod.name}
+                            </span>
+                            <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
+                              Unit: 1 {prod.stockType}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="p-4 font-mono">{prod.sku}</td>
+                        <td className="p-4">{prod.category?.name || 'Unassigned'}</td>
+                        <td className="p-4">{prod.brand?.name || 'None'}</td>
+                        <td className="p-4">
+                          <span className="line-through text-zinc-450 mr-2">₹{prod.mrp}</span>
+                          <span className="font-black text-zinc-900 dark:text-zinc-50">₹{prod.sellingPrice}</span>
+                        </td>
+                        <td className="p-4 text-center">
+                          {prod.isFeatured ? (
+                            <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 text-[9px] font-black uppercase dark:bg-emerald-950/20 dark:text-emerald-400">
+                              Yes
+                            </span>
+                          ) : (
+                            <span className="text-zinc-400 font-medium">No</span>
+                          )}
+                        </td>
+                        <td className="p-4 pr-6 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(prod)}
+                              className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                            >
+                              <Edit className="h-4.5 w-4.5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(prod.id)}
+                              className="p-1.5 rounded-lg border border-rose-100 hover:bg-rose-50 text-rose-500 dark:border-rose-950/20 dark:hover:bg-rose-950/10 transition-colors cursor-pointer"
+                            >
+                              <Trash2 className="h-4.5 w-4.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Server-side Pagination controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-5 bg-white dark:bg-zinc-900 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-400">
+                  <span>
+                    Showing Page {currentPage} of {totalPages} ({totalCount} total items)
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      disabled={currentPage <= 1}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className="h-8 px-3 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 disabled:opacity-40 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300 transition-all cursor-pointer"
+                    >
+                      Previous
+                    </button>
+                    {Array.from({ length: totalPages }, (_, idx) => idx + 1).map((pageNum) => (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`h-8 w-8 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                          currentPage === pageNum
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                            : 'border-zinc-200 text-zinc-550 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                    <button
+                      disabled={currentPage >= totalPages}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className="h-8 px-3 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 disabled:opacity-40 disabled:hover:bg-transparent dark:border-zinc-700 dark:hover:bg-zinc-800 dark:text-zinc-300 transition-all cursor-pointer"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -639,7 +684,6 @@ export default function ProductsManager({
                     Upload Photo
                   </button>
 
-                  {/* Native mobile camera capture trigger */}
                   <input 
                     type="file" 
                     accept="image/*" 
@@ -659,7 +703,6 @@ export default function ProductsManager({
                   </button>
                 </div>
 
-                {/* Paste Link options */}
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -846,7 +889,7 @@ export default function ProductsManager({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-zinc-200 dark:border-zinc-705 px-4 py-2.5 text-xs font-bold text-zinc-700 dark:text-zinc-300 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850"
+                  className="rounded-xl border border-zinc-200 px-4 py-2.5 text-xs font-bold text-zinc-750 dark:border-zinc-705 dark:text-zinc-300 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-850"
                 >
                   Cancel
                 </button>

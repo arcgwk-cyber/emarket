@@ -30,14 +30,6 @@ export default async function AdminDashboardPage() {
     redirect('/login?redirect=/admin');
   }
 
-  // Verify they have an administrative or manager role
-  const allowedRoles = ['Super Admin', 'Admin', 'Store Manager', 'Order Manager', 'Delivery Manager', 'Kitchen Manager'];
-  const hasAccess = user.roles.some(role => allowedRoles.includes(role));
-  
-  if (!hasAccess) {
-    redirect('/');
-  }
-
   // 1. Fetch real-time statistics
   let stats = {
     users: 0,
