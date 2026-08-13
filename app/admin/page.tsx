@@ -12,7 +12,9 @@ import {
   Utensils, 
   ChevronRight,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Tag,
+  FolderTree
 } from 'lucide-react';
 import { db } from '@/lib/db';
 import { users, orders, subscriptions, products } from '@/lib/db/schema';
@@ -155,8 +157,40 @@ export default async function AdminDashboardPage() {
         </div>
 
         {/* 2. QUICK MANAGEMENT ACTIONS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
+          <Link href="/admin/products" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
+            <div className="space-y-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400">
+                <Tag className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Product Catalog</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+                Manage platform items, adjust selling prices, unit MRPs, and configure featured grocery listings.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1.5 transition-transform mt-2">
+              Manage Products
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </Link>
+
+          <Link href="/admin/categories" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
+            <div className="space-y-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400">
+                <FolderTree className="h-5 w-5" />
+              </div>
+              <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Category Hierarchy</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
+                Create new business departments, categories, subcategories, and manage slugs.
+              </p>
+            </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-1.5 transition-transform mt-2">
+              Manage Categories
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </Link>
+
           <Link href="/admin/settings" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
             <div className="space-y-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-50 dark:bg-zinc-850 text-zinc-650 dark:text-zinc-300">
@@ -167,7 +201,7 @@ export default async function AdminDashboardPage() {
                 Configure delivery slots, service areas, business configurations, and app variables.
               </p>
             </div>
-            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1.5 transition-transform mt-2">
+            <div className="flex items-center gap-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 group-hover:translate-x-1.5 transition-transform mt-2">
               Manage System
               <ArrowRight className="h-3.5 w-3.5" />
             </div>
@@ -190,7 +224,7 @@ export default async function AdminDashboardPage() {
 
           <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col justify-between gap-4 opacity-75">
             <div className="space-y-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-indigo-50 dark:bg-indigo-950/20 text-indigo-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-50 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400">
                 <Truck className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Delivery Dispatch</h3>
