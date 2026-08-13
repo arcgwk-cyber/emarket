@@ -85,7 +85,7 @@ export default function ProductDetailWrapper({
     ((parseFloat(mrp) - parseFloat(sellingPrice)) / parseFloat(mrp)) * 100
   );
   
-  const currentStock = selectedVariant ? selectedVariant.stock : 10; // default mockup stock if not tracked
+  const currentStock = (selectedVariant && selectedVariant.stock > 0) ? selectedVariant.stock : 10; // default mockup stock if not tracked
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
