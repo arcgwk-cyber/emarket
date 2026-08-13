@@ -657,15 +657,35 @@ export default function CheckoutFlow({
             Items in Order
           </h3>
 
-          <div className="flex flex-col gap-3 max-h-48 overflow-y-auto no-scrollbar">
-            {cartItems.map((item) => (
-              <div key={item.id} className="flex justify-between text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                <span className="truncate max-w-[150px]">{item.name}</span>
-                <span className="text-zinc-950 dark:text-zinc-50 font-bold shrink-0">
-                  {item.quantity} x ₹{parseFloat(item.price).toFixed(2)}
-                </span>
-              </div>
-            ))}
+          <div className="overflow-x-auto max-h-56 overflow-y-auto pr-1 no-scrollbar">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-100 dark:border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
+                  <th className="py-2 pr-1.5">Sl.</th>
+                  <th className="py-2 pr-1.5">Item Name</th>
+                  <th className="py-2 text-center">Qty</th>
+                  <th className="py-2 text-center">Rate</th>
+                  <th className="py-2 text-right">Amount</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800/40 text-[11px] font-semibold text-zinc-550 dark:text-zinc-400">
+                {cartItems.map((item, index) => {
+                  const rate = parseFloat(item.price);
+                  const amount = rate * item.quantity;
+                  return (
+                    <tr key={item.id}>
+                      <td className="py-2.5 pr-1.5 text-zinc-400">{index + 1}</td>
+                      <td className="py-2.5 pr-1.5 font-bold text-zinc-800 dark:text-zinc-200 truncate max-w-[90px] sm:max-w-[125px]" title={item.name}>
+                        {item.name}
+                      </td>
+                      <td className="py-2.5 text-center font-black text-zinc-900 dark:text-zinc-100">{item.quantity}</td>
+                      <td className="py-2.5 text-center">₹{rate.toFixed(2)}</td>
+                      <td className="py-2.5 text-right font-black text-zinc-900 dark:text-zinc-100">₹{amount.toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           <div className="border-t border-zinc-50 dark:border-zinc-800 pt-4 flex flex-col gap-3 text-xs font-semibold text-zinc-500">
