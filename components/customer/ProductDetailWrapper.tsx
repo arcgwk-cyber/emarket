@@ -67,10 +67,16 @@ export default function ProductDetailWrapper({
   const [isAdded, setIsAdded] = useState(false);
 
   // Gallery Active Image
-  const allImages = selectedVariant?.images || product.images || [
-    'https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80'
-  ];
+  const allImages = (selectedVariant?.images && selectedVariant.images.length > 0) 
+    ? selectedVariant.images 
+    : (product.images && product.images.length > 0) 
+      ? product.images 
+      : ['https://images.unsplash.com/photo-1542838132-92c53300491e?w=600&auto=format&fit=crop&q=80'];
   const [activeImage, setActiveImage] = useState(allImages[0]);
+
+  React.useEffect(() => {
+    setActiveImage(allImages[0]);
+  }, [allImages[0]]);
 
   // Pricing configuration based on variant selection
   const mrp = selectedVariant ? selectedVariant.mrp : product.mrp;
