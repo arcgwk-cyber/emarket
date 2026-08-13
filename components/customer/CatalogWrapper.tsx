@@ -58,6 +58,7 @@ export default function CatalogWrapper({
   const [loading, setLoading] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [addedItemIds, setAddedItemIds] = useState<Record<string, boolean>>({});
+  const [selectedVariants, setSelectedVariants] = useState<Record<string, any>>({});
 
   // Filters from URL
   const currentQuery = searchParams.get('q') || '';
@@ -73,7 +74,11 @@ export default function CatalogWrapper({
   const [maxPrice, setMaxPrice] = useState(currentMaxPrice);
   const [sortBy, setSortBy] = useState(currentSortBy);
 
-  const handleAddToCart = async (product: Product, qty = 1) => {
+  const handleAddToCart = async (product: Product, variant: any = null, qty = 1) => {
+    const activeVariant = variant || (product.variants && product.variants.length > 0 ? product.variants[0] : null);
+    const variantId = activeVariant ? activeVariant.id : null;
+    const key = activeVariant ? activeVariant.id : product.id;
+
     try {
       const res = await fetch('/api/cart', {
         method: 'POST',
@@ -81,15 +86,15 @@ export default function CatalogWrapper({
         body: JSON.stringify({
           productId: product.id,
           quantity: qty,
-          variantId: product.variants && product.variants.length > 0 ? product.variants[0].id : null,
+          variantId,
         }),
       });
 
       if (res.ok) {
         window.dispatchEvent(new Event('cart-updated'));
-        setAddedItemIds(prev => ({ ...prev, [product.id]: true }));
+        setAddedItemIds(prev => ({ ...prev, [key]: true }));
         setTimeout(() => {
-          setAddedItemIds(prev => ({ ...prev, [product.id]: false }));
+          setAddedItemIds(prev => ({ ...prev, [key]: false }));
         }, 1500);
         return;
       }
@@ -105,7 +110,6 @@ export default function CatalogWrapper({
           }
         }
 
-        const variantId = product.variants && product.variants.length > 0 ? product.variants[0].id : null;
         const existingIdx = cartItems.findIndex(
           (item) => item.productId === product.id && item.variantId === variantId
         );
@@ -125,19 +129,19 @@ export default function CatalogWrapper({
               sellingPrice: product.sellingPrice,
               images: product.images,
             },
-            variant: product.variants && product.variants.length > 0 ? {
-              name: product.variants[0].name,
-              mrp: product.variants[0].mrp,
-              sellingPrice: product.variants[0].sellingPrice,
+            variant: activeVariant ? {
+              name: activeVariant.name,
+              mrp: activeVariant.mrp,
+              sellingPrice: activeVariant.sellingPrice,
             } : null,
           });
         }
 
         localStorage.setItem('guest_cart', JSON.stringify(cartItems));
         window.dispatchEvent(new Event('cart-updated'));
-        setAddedItemIds(prev => ({ ...prev, [product.id]: true }));
+        setAddedItemIds(prev => ({ ...prev, [key]: true }));
         setTimeout(() => {
-          setAddedItemIds(prev => ({ ...prev, [product.id]: false }));
+          setAddedItemIds(prev => ({ ...prev, [key]: false }));
         }, 1500);
       } else {
         console.error('Failed to add product to cart');
@@ -363,64 +367,96 @@ export default function CatalogWrapper({
           ) : (
             /* PRODUCT CARDS */
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-              {productsList.map((prod) => (
-                <div 
-                  key={prod.id}
-                  className="group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 shadow-sm hover:shadow-md transition-all duration-200"
-                >
-                  <button className="absolute top-4 right-4 z-10 p-1.5 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-400 hover:text-rose-500 backdrop-blur-sm transition-colors active:scale-95 shadow-sm">
-                    <Heart className="h-4 w-4" />
-                  </button>
+              {productsList.map((prod) => {
+                const activeVariant = prod.variants && prod.variants.length > 0 
+                  ? (selectedVariants[prod.id] || prod.variants[0]) 
+                  : null;
+                const displayPrice = activeVariant ? activeVariant.sellingPrice : prod.sellingPrice;
+                const displayMrp = activeVariant ? activeVariant.mrp : prod.mrp;
+                const isAddedKey = activeVariant ? activeVariant.id : prod.id;
+                const isAdded = addedItemIds[isAddedKey];
 
-                  <Link href={`/product/${prod.slug}`} className="flex flex-col gap-2 cursor-pointer">
-                    <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-50 dark:bg-zinc-950 p-1">
-                      <Image 
-                        src={(prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60'}
-                        alt={prod.name}
-                        fill
-                        className="rounded-lg object-cover p-0.5 group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    
-                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
-                      {prod.category.name}
-                    </span>
-                    <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug">
-                      {prod.name}
-                    </h3>
-                  </Link>
+                return (
+                  <div 
+                    key={prod.id}
+                    className="group relative flex flex-col justify-between rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-3 shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    <button className="absolute top-4 right-4 z-10 p-1.5 rounded-full bg-white/80 dark:bg-zinc-800/80 hover:bg-white dark:hover:bg-zinc-700 text-zinc-400 hover:text-rose-500 backdrop-blur-sm transition-colors active:scale-95 shadow-sm">
+                      <Heart className="h-4 w-4" />
+                    </button>
 
-                  <div className="flex flex-col gap-3 mt-3">
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 rounded self-start">
-                      Unit: 1 {prod.stockType || 'kg'}
-                    </span>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-xs sm:text-sm font-extrabold text-zinc-950 dark:text-zinc-50">
-                          ₹{prod.sellingPrice}
-                        </span>
-                        {prod.mrp && prod.mrp !== prod.sellingPrice && (
-                          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 line-through">
-                            ₹{prod.mrp}
-                          </span>
-                        )}
+                    <Link href={`/product/${prod.slug}`} className="flex flex-col gap-2 cursor-pointer">
+                      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-zinc-50 dark:bg-zinc-950 p-1">
+                        <Image 
+                          src={(prod.images && prod.images[0]) || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=60'}
+                          alt={prod.name}
+                          fill
+                          className="rounded-lg object-cover p-0.5 group-hover:scale-105 transition-transform duration-300"
+                        />
                       </div>
                       
-                      <button 
-                        onClick={() => handleAddToCart(prod)}
-                        className={`rounded-lg active:scale-95 text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all ${
-                          addedItemIds[prod.id]
-                            ? 'bg-emerald-600 text-white border border-emerald-600'
-                            : 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                        }`}
-                      >
-                        {addedItemIds[prod.id] ? 'Added ✓' : 'Add'}
-                      </button>
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
+                        {prod.category.name}
+                      </span>
+                      <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug">
+                        {prod.name}
+                      </h3>
+                    </Link>
+
+                    <div className="flex flex-col gap-3 mt-3">
+                      {/* Variant Selection Pills (or static unit fallback) */}
+                      {prod.variants && prod.variants.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {prod.variants.map((v) => {
+                            const isSelected = activeVariant?.id === v.id;
+                            return (
+                              <button
+                                key={v.id}
+                                onClick={() => setSelectedVariants(prev => ({ ...prev, [prod.id]: v }))}
+                                className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wide border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
+                                    : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-750'
+                                }`}
+                              >
+                                {v.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-zinc-505 dark:text-zinc-400 font-medium bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 rounded self-start">
+                          Unit: 1 {prod.stockType || 'kg'}
+                        </span>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-xs sm:text-sm font-extrabold text-zinc-950 dark:text-zinc-50">
+                            ₹{displayPrice}
+                          </span>
+                          {displayMrp && displayMrp !== displayPrice && (
+                            <span className="text-[10px] text-zinc-400 dark:text-zinc-505 line-through">
+                              ₹{displayMrp}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <button 
+                          onClick={() => handleAddToCart(prod, activeVariant)}
+                          className={`rounded-lg active:scale-95 text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all cursor-pointer ${
+                            isAdded
+                              ? 'bg-emerald-600 text-white border border-emerald-600'
+                              : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                          }`}
+                        >
+                          {isAdded ? 'Added ✓' : 'Add'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
