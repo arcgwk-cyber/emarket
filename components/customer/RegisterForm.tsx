@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, User, Phone, Loader2, ArrowRight, Info } from 'lucide-react';
+import { Mail, Lock, User, Phone, Loader2, ArrowRight } from 'lucide-react';
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -79,13 +79,6 @@ export default function RegisterForm() {
           </p>
         </div>
 
-        {/* Info box: Bootstrap alert */}
-        <div className="rounded-xl bg-emerald-50/50 border border-emerald-100 p-3 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400 flex gap-2">
-          <Info className="h-4.5 w-4.5 text-emerald-500 shrink-0 mt-0.5" />
-          <p className="leading-relaxed">
-            <strong>System Bootstrap Mode:</strong> The first user account created in this database is automatically allocated the <strong>Super Admin</strong> role with full root management access.
-          </p>
-        </div>
 
         {errorMsg && (
           <div className="rounded-xl bg-rose-50 border border-rose-100 p-3 text-xs font-semibold text-rose-600 dark:bg-rose-950/20 dark:border-rose-900/30">
