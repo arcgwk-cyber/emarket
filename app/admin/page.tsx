@@ -207,24 +207,25 @@ export default async function AdminDashboardPage() {
             </div>
           </Link>
 
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col justify-between gap-4 opacity-75">
+          <Link href="/admin/orders" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
             <div className="space-y-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400">
                 <ClipboardList className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Order Management</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-                Track supermarket grocery orders, packed weights adjustment, and edit invoice receipts.
+                Track supermarket grocery orders, progress statuses, and review delivery instructions.
               </p>
             </div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500">
-              API Active • Store Admin Ready
-            </span>
-          </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1.5 transition-transform mt-2">
+              Manage Orders
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </Link>
 
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col justify-between gap-4 opacity-75">
+          <Link href="/admin/deliveries" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
             <div className="space-y-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-50 dark:bg-zinc-850 text-zinc-500 dark:text-zinc-400">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-zinc-50 dark:bg-zinc-850 text-zinc-650 dark:text-zinc-300">
                 <Truck className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Delivery Dispatch</h3>
@@ -232,25 +233,27 @@ export default async function AdminDashboardPage() {
                 Assign orders to delivery drivers, manage slot capacities, and track active dispatch runs.
               </p>
             </div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500">
-              Driver Verification Ready
-            </span>
-          </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-zinc-600 dark:text-zinc-400 group-hover:translate-x-1.5 transition-transform mt-2">
+              Dispatch Orders
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </Link>
 
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm flex flex-col justify-between gap-4 opacity-75">
+          <Link href="/admin/kitchen" className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow group flex flex-col justify-between gap-4">
             <div className="space-y-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-500">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400">
                 <Utensils className="h-5 w-5" />
               </div>
               <h3 className="text-sm font-black text-zinc-800 dark:text-zinc-200">Cloud Kitchen</h3>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium leading-relaxed">
-                Track chef order status, update hot food menus, and coordinate diet subscription meal packing.
+                Track chef order status, prepare hot food menus, and coordinate diet meals.
               </p>
             </div>
-            <span className="text-[10px] font-black uppercase text-zinc-400 dark:text-zinc-500">
-              Kitchen Manager Ready
-            </span>
-          </div>
+            <div className="flex items-center gap-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 group-hover:translate-x-1.5 transition-transform mt-2">
+              Kitchen Board
+              <ArrowRight className="h-3.5 w-3.5" />
+            </div>
+          </Link>
 
         </div>
 
