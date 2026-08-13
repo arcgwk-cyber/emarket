@@ -132,8 +132,8 @@ export default function CheckoutFlow({
   const deliveryCharge = subtotal > 499 || subtotal === 0 ? 0 : parseFloat(selectedSlot?.deliveryCharge || '49');
   const packagingFee = subtotal > 0 ? 15 : 0;
   const convenienceFee = 5;
-  const gstTax = subtotal * 0.05;
-  const total = subtotal + gstTax + deliveryCharge + packagingFee + convenienceFee - discount;
+  const gstTax = subtotal - (subtotal / 1.05); // 5% inclusive GST
+  const total = subtotal + deliveryCharge + packagingFee + convenienceFee - discount;
 
   const handleApplyCoupon = async () => {
     if (!couponCode) return;
@@ -689,11 +689,11 @@ export default function CheckoutFlow({
               <span>Packaging & Tech Fees</span>
               <span className="text-zinc-900 dark:text-zinc-100 font-bold">₹{(packagingFee + convenienceFee).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span>Estimated GST (5%)</span>
-              <span className="text-zinc-900 dark:text-zinc-100 font-bold">₹{gstTax.toFixed(2)}</span>
+            <div className="flex justify-between text-[11px] text-zinc-400">
+              <span>GST & Taxes (5% Included)</span>
+              <span>₹{gstTax.toFixed(2)}</span>
             </div>
-            <div className="border-t border-zinc-100 pt-4 dark:border-zinc-800 flex justify-between text-sm font-black text-zinc-900 dark:text-zinc-100">
+            <div className="border-t border-zinc-150 pt-4 dark:border-zinc-800 flex justify-between text-sm font-black text-zinc-900 dark:text-zinc-100">
               <span>Order Total</span>
               <span>₹{total.toFixed(2)}</span>
             </div>

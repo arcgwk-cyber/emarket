@@ -148,7 +148,7 @@ export async function POST(request: Request) {
       
       const itemSubtotal = price * item.quantity;
       const gstPercent = parseFloat(item.product.gstPercent);
-      const itemTax = itemSubtotal * (gstPercent / 100);
+      const itemTax = itemSubtotal - (itemSubtotal / (1 + gstPercent / 100));
 
       subtotal += itemSubtotal;
       taxAmount += itemTax;
@@ -211,7 +211,7 @@ export async function POST(request: Request) {
     const deliveryCharge = subtotal > 499 ? 0 : parseFloat(slot.deliveryCharge);
     const packagingFee = subtotal > 0 ? 15 : 0; // standard packaging flat fee
     const convenienceFee = 5; // standard tech fee
-    const totalAmount = subtotal + taxAmount + deliveryCharge + packagingFee + convenienceFee - discountAmount;
+    const totalAmount = subtotal + deliveryCharge + packagingFee + convenienceFee - discountAmount;
 
     // 6. DB TRANSACTION FOR INVENTORY & ORDER CREATION
     const orderResult = await db.transaction(async (tx) => {
