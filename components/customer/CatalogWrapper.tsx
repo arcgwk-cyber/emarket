@@ -375,6 +375,7 @@ export default function CatalogWrapper({
                 const displayMrp = activeVariant ? activeVariant.mrp : prod.mrp;
                 const isAddedKey = activeVariant ? activeVariant.id : prod.id;
                 const isAdded = addedItemIds[isAddedKey];
+                const isOutOfStock = activeVariant ? activeVariant.stock <= 0 : false;
 
                 return (
                   <div 
@@ -393,6 +394,13 @@ export default function CatalogWrapper({
                           fill
                           className="rounded-lg object-cover p-0.5 group-hover:scale-105 transition-transform duration-300"
                         />
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded-lg">
+                            <span className="bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                              Out of Stock
+                            </span>
+                          </div>
+                        )}
                       </div>
                       
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
@@ -409,6 +417,7 @@ export default function CatalogWrapper({
                         <div className="flex flex-wrap gap-1">
                           {prod.variants.map((v) => {
                             const isSelected = activeVariant?.id === v.id;
+                            const isVariantOutOfStock = v.stock <= 0;
                             return (
                               <button
                                 key={v.id}
@@ -416,7 +425,9 @@ export default function CatalogWrapper({
                                 className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wide border transition-all cursor-pointer ${
                                   isSelected
                                     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
-                                    : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-750'
+                                    : isVariantOutOfStock
+                                      ? 'bg-zinc-100 border-zinc-200 text-zinc-400 line-through dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-500'
+                                      : 'bg-zinc-50 border-zinc-200 text-zinc-600 hover:bg-zinc-100 dark:bg-zinc-800 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-750'
                                 }`}
                               >
                                 {v.name}
@@ -443,14 +454,17 @@ export default function CatalogWrapper({
                         </div>
                         
                         <button 
+                          disabled={isOutOfStock}
                           onClick={() => handleAddToCart(prod, activeVariant)}
-                          className={`rounded-lg active:scale-95 text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all cursor-pointer ${
-                            isAdded
-                              ? 'bg-emerald-600 text-white border border-emerald-600'
-                              : 'bg-orange-500 hover:bg-orange-600 text-white'
+                          className={`rounded-lg active:scale-95 text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all ${
+                            isOutOfStock
+                              ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400 border border-zinc-200 dark:border-zinc-700 cursor-not-allowed'
+                              : isAdded
+                                ? 'bg-emerald-600 text-white border border-emerald-600 cursor-pointer'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white cursor-pointer'
                           }`}
                         >
-                          {isAdded ? 'Added ✓' : 'Add'}
+                          {isOutOfStock ? 'Out of Stock' : isAdded ? 'Added ✓' : 'Add'}
                         </button>
                       </div>
                     </div>

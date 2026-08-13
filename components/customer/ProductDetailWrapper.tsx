@@ -85,7 +85,8 @@ export default function ProductDetailWrapper({
     ((parseFloat(mrp) - parseFloat(sellingPrice)) / parseFloat(mrp)) * 100
   );
   
-  const currentStock = (selectedVariant && selectedVariant.stock > 0) ? selectedVariant.stock : 10; // default mockup stock if not tracked
+  const currentStock = selectedVariant ? selectedVariant.stock : 0;
+  const isOutOfStock = currentStock <= 0;
 
   const handleShare = () => {
     if (typeof window !== 'undefined') {
@@ -205,6 +206,11 @@ export default function ProductDetailWrapper({
             {discountPercent > 0 && (
               <span className="absolute top-4 left-4 rounded-full bg-rose-500 px-3 py-1 text-xs font-black text-white shadow-sm">
                 Save {discountPercent}%
+              </span>
+            )}
+            {isOutOfStock && (
+              <span className="absolute top-4 right-4 rounded-md bg-rose-600 px-3 py-1.5 text-xs font-black text-white uppercase tracking-wider shadow-md">
+                Out of Stock
               </span>
             )}
           </div>
@@ -331,17 +337,17 @@ export default function ProductDetailWrapper({
             {/* Quantity +/- widgets */}
             <div className="flex items-center justify-between sm:justify-start rounded-xl border border-zinc-200 bg-zinc-50/50 p-1.5 dark:border-zinc-800 dark:bg-zinc-900/50">
               <button
-                disabled={quantity <= 1}
+                disabled={isOutOfStock || quantity <= 1}
                 onClick={() => setQuantity(quantity - 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white hover:shadow-sm dark:hover:bg-zinc-800 text-zinc-500 disabled:opacity-40 transition-all"
               >
                 <Minus className="h-4 w-4" />
               </button>
               <span className="w-10 text-center text-xs font-bold text-zinc-800 dark:text-zinc-200">
-                {quantity}
+                {isOutOfStock ? '0' : quantity}
               </span>
               <button
-                disabled={quantity >= currentStock}
+                disabled={isOutOfStock || quantity >= currentStock}
                 onClick={() => setQuantity(quantity + 1)}
                 className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-white hover:shadow-sm dark:hover:bg-zinc-800 text-zinc-500 disabled:opacity-40 transition-all"
               >
@@ -351,24 +357,35 @@ export default function ProductDetailWrapper({
 
             {/* Buttons: Add to Cart */}
             <div className="flex-1 flex gap-3">
-              <button
-                onClick={handleAddToCart}
-                className={`flex-1 rounded-xl active:scale-95 text-white text-xs font-black py-4 shadow-md transition-all flex items-center justify-center gap-2 ${
-                  isAdded
-                    ? 'bg-emerald-600 border border-emerald-600'
-                    : 'bg-orange-500 hover:bg-orange-600'
-                }`}
-              >
-                <ShoppingCart className="h-4.5 w-4.5" />
-                {isAdded ? 'Added to Cart ✓' : 'Add to Cart'}
-              </button>
-              
-              <Link
-                href="/checkout"
-                className="flex-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 active:scale-95 text-white text-xs font-black py-4 shadow-md transition-all flex items-center justify-center dark:bg-zinc-800 dark:hover:bg-zinc-700"
-              >
-                Buy Now
-              </Link>
+              {isOutOfStock ? (
+                <button
+                  disabled
+                  className="flex-1 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 border border-zinc-200 dark:border-zinc-700 text-xs font-black py-4 flex items-center justify-center gap-2 cursor-not-allowed"
+                >
+                  Out of Stock
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleAddToCart}
+                    className={`flex-1 rounded-xl active:scale-95 text-white text-xs font-black py-4 shadow-md transition-all flex items-center justify-center gap-2 ${
+                      isAdded
+                        ? 'bg-emerald-600 border border-emerald-600'
+                        : 'bg-orange-500 hover:bg-orange-600'
+                    }`}
+                  >
+                    <ShoppingCart className="h-4.5 w-4.5" />
+                    {isAdded ? 'Added to Cart ✓' : 'Add to Cart'}
+                  </button>
+                  
+                  <Link
+                    href="/checkout"
+                    className="flex-1 rounded-xl bg-zinc-900 hover:bg-zinc-850 active:scale-95 text-white text-xs font-black py-4 shadow-md transition-all flex items-center justify-center dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                  >
+                    Buy Now
+                  </Link>
+                </>
+              )}
             </div>
             
           </div>
