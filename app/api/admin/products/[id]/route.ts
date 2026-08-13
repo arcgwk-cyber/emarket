@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { products, inventory } from '@/lib/db/schema';
+import { products, inventory, productVariants } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/services/auth';
 
@@ -113,6 +113,13 @@ export async function PATCH(
               .where(eq(inventory.id, invRecord.id));
           }
         }
+      }
+
+      // 5. Update variant images to match parent product images
+      if (images !== undefined && Array.isArray(images)) {
+        await tx.update(productVariants)
+          .set({ images: images })
+          .where(eq(productVariants.productId, id));
       }
 
       return p;
