@@ -175,7 +175,8 @@ export default function ProductsManager({
           }
           ctx.drawImage(img, 0, 0, width, height);
           
-          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          const mimeType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+          const compressedBase64 = canvas.toDataURL(mimeType, mimeType === 'image/jpeg' ? 0.7 : undefined);
           resolve(compressedBase64);
         };
         img.onerror = (err) => reject(err);
