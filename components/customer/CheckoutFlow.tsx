@@ -31,6 +31,8 @@ interface Address {
   addressType: string;
   deliveryInstructions: string | null;
   isDefault: boolean;
+  latitude?: string | null;
+  longitude?: string | null;
 }
 
 interface DeliverySlot {
@@ -95,6 +97,36 @@ export default function CheckoutFlow({
 
   const selectedAddress = addresses.find(a => a.id === addressId);
   const selectedSlot = slots.find(s => s.id === slotId);
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the Earth in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  const checkServiceArea = (addr: Address) => {
+    if (!addr.latitude || !addr.longitude) return { allowed: true, distance: null };
+    const lat1 = parseFloat(addr.latitude);
+    const lon1 = parseFloat(addr.longitude);
+    
+    // Store Hub coordinates (Kurmannapalem Central Hub, Visakhapatnam)
+    const HUB_LAT = 17.6784;
+    const HUB_LNG = 83.1678;
+    
+    const distance = calculateDistance(HUB_LAT, HUB_LNG, lat1, lon1);
+    return {
+      allowed: distance <= 5.0,
+      distance: distance.toFixed(2)
+    };
+  };
+
+  const selectedAddressService = selectedAddress ? checkServiceArea(selectedAddress) : { allowed: true, distance: null };
 
   // Calculate totals
   const deliveryCharge = subtotal > 499 || subtotal === 0 ? 0 : parseFloat(selectedSlot?.deliveryCharge || '49');
@@ -340,10 +372,36 @@ export default function CheckoutFlow({
                     )}
                   </div>
 
+                  {/* Service Area Check Result */}
+                  {selectedAddress && (
+                    <div className="mt-4">
+                      {!selectedAddress.latitude || !selectedAddress.longitude ? (
+                        <div className="p-3 bg-zinc-50 border border-zinc-150 rounded-xl text-zinc-500 text-[11px] font-semibold">
+                          ⚠️ Address coordinates not mapped. Geolocation area verification skipped.
+                        </div>
+                      ) : !selectedAddressService.allowed ? (
+                        <div className="p-3.5 bg-rose-50 border border-rose-100 rounded-xl text-rose-700 text-xs font-semibold flex items-start gap-2">
+                          <AlertCircle className="h-4.5 w-4.5 text-rose-505 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-extrabold text-[12px]">No service in your address</p>
+                            <p className="text-[10px] text-rose-500 mt-0.5 leading-relaxed">
+                              Your address is located {selectedAddressService.distance} km away from our Kurmannapalem Central Hub. Our delivery coverage is restricted to a maximum 5 km radius. We regret the inconvenience.
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-emerald-50/30 border border-emerald-100 rounded-xl text-emerald-700 text-[11px] font-semibold flex items-center gap-1.5">
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                          <span>Within Service Area (Distance: {selectedAddressService.distance} km)</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={() => setStep(2)}
-                    disabled={!addressId}
-                    className="mt-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3.5 shadow-md flex items-center justify-center gap-1.5 self-end px-8 active:scale-95 transition-all"
+                    disabled={!addressId || !selectedAddressService.allowed}
+                    className="mt-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold py-3.5 shadow-md flex items-center justify-center gap-1.5 self-end px-8 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
                   >
                     Next Step
                     <ChevronRight className="h-4.5 w-4.5" />

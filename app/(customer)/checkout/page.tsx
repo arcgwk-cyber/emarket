@@ -88,6 +88,8 @@ export default async function CheckoutPage() {
     addressType: addr.addressType,
     deliveryInstructions: addr.deliveryInstructions,
     isDefault: addr.isDefault,
+    latitude: addr.latitude,
+    longitude: addr.longitude,
   }));
 
   const mappedSlots = activeSlots.map((slot) => ({
