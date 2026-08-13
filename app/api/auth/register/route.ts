@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { users, userRoles, roles } from '@/lib/db/schema';
 import { hasSuperAdmin, syncOrCreateDbUser } from '@/lib/services/auth';
 import { createClient } from '@/lib/supabase/server';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -17,6 +17,27 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const validated = registerSchema.parse(body);
+
+    // Check if email or mobile is already registered in our DB
+    const existingUser = await db.query.users.findFirst({
+      where: (u, { or, eq }) => or(
+        eq(u.email, validated.email),
+        validated.mobile ? eq(u.mobile, validated.mobile) : undefined
+      ),
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          message: existingUser.email === validated.email 
+            ? 'Email address is already registered' 
+            : 'Mobile number is already registered',
+          code: 'USER_ALREADY_EXISTS' 
+        },
+        { status: 400 }
+      );
+    }
 
     const supabase = await createClient();
 

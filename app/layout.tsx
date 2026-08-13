@@ -5,6 +5,7 @@ import Navbar from '@/components/customer/Navbar';
 import BottomNav from '@/components/customer/BottomNav';
 import PwaRegister from '@/components/customer/PwaRegister';
 import { getCurrentUser } from '@/lib/services/auth';
+import AuthErrorBanner from '@/components/customer/AuthErrorBanner';
 
 import Footer from '@/components/customer/Footer';
 
@@ -48,6 +49,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col font-sans bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
         <PwaRegister />
         <Navbar isAdmin={isAdmin} username={username} />
+        <AuthErrorBanner />
         <main className="flex-1 pb-20 md:pb-0">
           {children}
         </main>
