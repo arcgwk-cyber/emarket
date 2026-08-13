@@ -689,10 +689,6 @@ export default function CheckoutFlow({
               <span>Packaging & Tech Fees</span>
               <span className="text-zinc-900 dark:text-zinc-100 font-bold">₹{(packagingFee + convenienceFee).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-[11px] text-zinc-400">
-              <span>GST & Taxes (5% Included)</span>
-              <span>₹{gstTax.toFixed(2)}</span>
-            </div>
             <div className="border-t border-zinc-150 pt-4 dark:border-zinc-800 flex justify-between text-sm font-black text-zinc-900 dark:text-zinc-100">
               <span>Order Total</span>
               <span>₹{total.toFixed(2)}</span>

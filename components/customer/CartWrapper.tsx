@@ -111,8 +111,7 @@ export default function CartWrapper({ initialItems, isLoggedIn }: CartWrapperPro
   }, 0);
 
   const deliveryCharge = subtotal > 499 || subtotal === 0 ? 0 : 49;
-  const gstTax = subtotal * 0.05; // 5% GST on average
-  const total = subtotal + deliveryCharge + gstTax;
+  const total = subtotal + deliveryCharge;
 
   if (items.length === 0) {
     return (
@@ -242,11 +241,6 @@ export default function CartWrapper({ initialItems, isLoggedIn }: CartWrapperPro
               <span className="text-zinc-900 dark:text-zinc-100 font-bold">
                 {deliveryCharge === 0 ? <span className="text-emerald-500">FREE</span> : `₹${deliveryCharge.toFixed(2)}`}
               </span>
-            </div>
-
-            <div className="flex justify-between">
-              <span>Estimated GST (5%)</span>
-              <span className="text-zinc-900 dark:text-zinc-100 font-bold">₹{gstTax.toFixed(2)}</span>
             </div>
 
             {deliveryCharge > 0 && (
