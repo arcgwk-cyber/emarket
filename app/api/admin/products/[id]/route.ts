@@ -42,6 +42,7 @@ export async function PATCH(
       stockType, 
       weightG, 
       isFeatured,
+      images,
       stockAdjustment
     } = body;
 
@@ -89,6 +90,7 @@ export async function PATCH(
           stockType: stockType || undefined,
           weightG: weightG !== undefined ? (weightG ? parseInt(weightG) : null) : undefined,
           isFeatured: isFeatured !== undefined ? !!isFeatured : undefined,
+          images: images !== undefined ? (images && Array.isArray(images) ? images : []) : undefined,
           updatedAt: new Date(),
         })
         .where(eq(products.id, id))

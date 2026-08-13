@@ -37,6 +37,7 @@ export async function POST(request: Request) {
       stockType, 
       weightG, 
       isFeatured,
+      images = [],
       initialStock = 0
     } = body;
 
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
         stockType: stockType || 'piece',
         weightG: weightG ? parseInt(weightG) : null,
         isFeatured: !!isFeatured,
+        images: images && Array.isArray(images) ? images : [],
         status: 'active',
       }).returning();
 

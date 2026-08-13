@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Plus, 
@@ -11,8 +11,13 @@ import {
   Loader2, 
   ChevronLeft, 
   Tag, 
-  ShieldAlert,
-  Sparkles
+  Sparkles,
+  Camera,
+  Upload,
+  Link2,
+  Download,
+  FileSpreadsheet,
+  Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -31,6 +36,7 @@ interface Product {
   weightG: number | null;
   isFeatured: boolean;
   status: string;
+  images?: string[] | null;
   category?: { name: string } | null;
   brand?: { name: string } | null;
 }
@@ -60,9 +66,15 @@ export default function ProductsManager({
   const [productsList, setProductsList] = useState<Product[]>(initialProducts);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // File upload refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
   // Form states
@@ -80,6 +92,10 @@ export default function ProductsManager({
   const [isFeatured, setIsFeatured] = useState(false);
   const [initialStock, setInitialStock] = useState('0');
   const [stockAdjustment, setStockAdjustment] = useState('0');
+  
+  // Image Manager states
+  const [images, setImages] = useState<string[]>([]);
+  const [imageLink, setImageLink] = useState('');
 
   const openAddModal = () => {
     setEditingProduct(null);
@@ -97,6 +113,8 @@ export default function ProductsManager({
     setIsFeatured(false);
     setInitialStock('0');
     setStockAdjustment('0');
+    setImages([]);
+    setImageLink('');
     setIsModalOpen(true);
   };
 
@@ -116,9 +134,54 @@ export default function ProductsManager({
     setIsFeatured(prod.isFeatured);
     setInitialStock('0');
     setStockAdjustment('0');
+    setImages(prod.images || []);
+    setImageLink('');
     setIsModalOpen(true);
   };
 
+  // Image Upload Logic (Shared for local file and camera)
+  const handleUploadFile = async (e: React.ChangeEvent<HTMLInputElement>, isCamera = false) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setImages(prev => [...prev, json.url]);
+      } else {
+        alert(json.message || 'Image upload failed.');
+      }
+    } catch (err) {
+      console.error('Image upload error:', err);
+      alert('Network error. Image upload failed.');
+    } finally {
+      setUploadingImage(false);
+      // Clear inputs
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
+
+  const handleAddLink = () => {
+    if (!imageLink.trim()) return;
+    setImages(prev => [...prev, imageLink.trim()]);
+    setImageLink('');
+  };
+
+  const handleRemoveImage = (indexToRemove: number) => {
+    setImages(prev => prev.filter((_, idx) => idx !== indexToRemove));
+  };
+
+  // Save changes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -136,6 +199,7 @@ export default function ProductsManager({
       stockType,
       weightG: weightG ? parseInt(weightG) : null,
       isFeatured,
+      images,
       initialStock: editingProduct ? undefined : parseInt(initialStock),
       stockAdjustment: editingProduct ? parseInt(stockAdjustment) : undefined,
     };
@@ -156,7 +220,6 @@ export default function ProductsManager({
       if (res.ok && json.success) {
         setIsModalOpen(false);
         router.refresh();
-        // Force update local list or reload page
         window.location.reload();
       } else {
         alert(json.message || 'Failed to save product');
@@ -189,6 +252,112 @@ export default function ProductsManager({
     }
   };
 
+  // CSV Bulk Export
+  const handleExportCSV = () => {
+    const headers = ['name', 'sku', 'categoryName', 'brandName', 'mrp', 'sellingPrice', 'costPrice', 'stockType', 'weightG', 'status'];
+    const rows = productsList.map(p => [
+      `"${p.name.replace(/"/g, '""')}"`,
+      `"${p.sku}"`,
+      `"${p.category?.name || ''}"`,
+      `"${p.brand?.name || ''}"`,
+      p.mrp,
+      p.sellingPrice,
+      p.costPrice || '',
+      p.stockType,
+      p.weightG || '',
+      p.status
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `products_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // CSV Bulk Import
+  const handleImportCSV = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      const text = evt.target?.result as string;
+      if (!text) return;
+
+      const lines = text.split(/\r?\n/);
+      if (lines.length <= 1) {
+        alert('CSV file is empty or only contains headers.');
+        return;
+      }
+
+      // Parse headers
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const productsToImport = [];
+      
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // Correctly split and trim CSV columns, strip outer quotes
+        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+        const item: any = {};
+        
+        headers.forEach((header, index) => {
+          item[header] = values[index] || '';
+        });
+
+        if (item.name && item.sku && item.categoryname && item.mrp && item.sellingprice) {
+          productsToImport.push({
+            name: item.name,
+            sku: item.sku,
+            categoryName: item.categoryname,
+            mrp: parseFloat(item.mrp),
+            sellingPrice: parseFloat(item.sellingprice),
+            costPrice: item.costprice ? parseFloat(item.costprice) : null,
+            stockType: item.stocktype || 'piece',
+            weightG: item.weightg ? parseInt(item.weightg) : null,
+            initialStock: item.initialstock ? parseInt(item.initialstock) : 0,
+            description: item.description || '',
+          });
+        }
+      }
+
+      if (productsToImport.length === 0) {
+        alert('No valid product rows found in CSV. Make sure headers are exactly: name, sku, categoryName, mrp, sellingPrice, costPrice, stockType, weightG, initialStock.');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const res = await fetch('/api/admin/products/bulk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ products: productsToImport }),
+        });
+
+        const json = await res.json();
+        if (res.ok && json.success) {
+          alert(`Successfully imported ${json.count} products!`);
+          window.location.reload();
+        } else {
+          alert(json.message || 'Import failed.');
+        }
+      } catch (err) {
+        console.error('Import error:', err);
+        alert('Network error during CSV import.');
+      } finally {
+        setLoading(false);
+        if (csvInputRef.current) csvInputRef.current.value = '';
+      }
+    };
+    reader.readAsText(file);
+  };
+
   const filteredProducts = productsList.filter(prod =>
     prod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     prod.sku.toLowerCase().includes(searchQuery.toLowerCase())
@@ -199,7 +368,7 @@ export default function ProductsManager({
       <div className="space-y-6">
         
         {/* Navigation Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-6 border-b border-zinc-200 dark:border-zinc-800">
           <div>
             <div className="flex items-center gap-2">
               <Link 
@@ -211,23 +380,50 @@ export default function ProductsManager({
               </Link>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50 mt-2 flex items-center gap-2">
-              <Tag className="h-6 w-6 text-emerald-555" />
+              <Tag className="h-6 w-6 text-emerald-500" />
               Products Management
             </h1>
             <p className="text-xs text-zinc-500 mt-1 font-medium">
-              Add, edit, or delete supermarket grocery items and sync store inventories.
+              Manage supermarkets inventories, upload bulk products, and take instant photos of stock items.
             </p>
           </div>
-          <button
-            onClick={openAddModal}
-            className="rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold px-5 py-3 shadow-md flex items-center justify-center gap-1.5 transition-all self-start"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Product
-          </button>
+          
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* CSV Import Hidden Input */}
+            <input 
+              type="file" 
+              accept=".csv" 
+              ref={csvInputRef}
+              onChange={handleImportCSV} 
+              className="hidden" 
+            />
+            <button
+              onClick={() => csvInputRef.current?.click()}
+              className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-850 px-4 py-3 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-sm active:scale-95 transition-all inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileSpreadsheet className="h-4 w-4 text-emerald-500" />
+              Import CSV
+            </button>
+
+            <button
+              onClick={handleExportCSV}
+              className="rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white hover:bg-zinc-50 dark:bg-zinc-900 dark:hover:bg-zinc-850 px-4 py-3 text-xs font-bold text-zinc-700 dark:text-zinc-300 shadow-sm active:scale-95 transition-all inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download className="h-4 w-4 text-indigo-500" />
+              Export CSV
+            </button>
+
+            <button
+              onClick={openAddModal}
+              className="rounded-2xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-xs font-bold px-5 py-3 shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="h-4 w-4" />
+              Add Product
+            </button>
+          </div>
         </div>
 
-        {/* Search Filter */}
+        {/* Search */}
         <div className="relative max-w-md">
           <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <input
@@ -239,7 +435,7 @@ export default function ProductsManager({
           />
         </div>
 
-        {/* Products Table */}
+        {/* Table list */}
         <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-3xl shadow-sm overflow-hidden">
           {filteredProducts.length === 0 ? (
             <div className="p-12 text-center text-xs text-zinc-500 font-medium">
@@ -262,13 +458,26 @@ export default function ProductsManager({
                 <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-750 dark:text-zinc-300">
                   {filteredProducts.map((prod) => (
                     <tr key={prod.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/20">
-                      <td className="p-4 pl-6">
-                        <span className="font-bold text-zinc-900 dark:text-zinc-50 block">
-                          {prod.name}
-                        </span>
-                        <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
-                          Unit: 1 {prod.stockType}
-                        </span>
+                      <td className="p-4 pl-6 flex items-center gap-3">
+                        <div className="h-10 w-10 shrink-0 rounded-xl bg-zinc-50 dark:bg-zinc-800 overflow-hidden border border-zinc-100 dark:border-zinc-855 flex items-center justify-center">
+                          {prod.images && prod.images.length > 0 ? (
+                            <img 
+                              src={prod.images[0]} 
+                              alt={prod.name} 
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="h-4 w-4 text-zinc-400" />
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-bold text-zinc-900 dark:text-zinc-50 block truncate max-w-xs">
+                            {prod.name}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
+                            Unit: 1 {prod.stockType}
+                          </span>
+                        </div>
                       </td>
                       <td className="p-4 font-mono">{prod.sku}</td>
                       <td className="p-4">{prod.category?.name || 'Unassigned'}</td>
@@ -290,13 +499,13 @@ export default function ProductsManager({
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => openEditModal(prod)}
-                            className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors"
+                            className="p-1.5 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-550 dark:border-zinc-700 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
                           >
                             <Edit className="h-4.5 w-4.5" />
                           </button>
                           <button
                             onClick={() => handleDelete(prod.id)}
-                            className="p-1.5 rounded-lg border border-rose-100 hover:bg-rose-50 text-rose-500 dark:border-rose-950/20 dark:hover:bg-rose-950/10 transition-colors"
+                            className="p-1.5 rounded-lg border border-rose-100 hover:bg-rose-50 text-rose-500 dark:border-rose-950/20 dark:hover:bg-rose-950/10 transition-colors cursor-pointer"
                           >
                             <Trash2 className="h-4.5 w-4.5" />
                           </button>
@@ -312,7 +521,7 @@ export default function ProductsManager({
 
       </div>
 
-      {/* Add / Edit Slide-over Drawer Modal */}
+      {/* Add / Edit Modal Drawer */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
           <div 
@@ -350,6 +559,93 @@ export default function ProductsManager({
                 />
               </div>
 
+              {/* IMAGE MANAGER SECTION */}
+              <div className="border border-zinc-100 dark:border-zinc-800 p-4 rounded-2xl bg-zinc-50/20 space-y-3">
+                <span className="text-[10px] font-bold uppercase text-zinc-400 block">Product Images</span>
+                
+                {/* Thumbnails grid */}
+                {images.length > 0 && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {images.map((imgUrl, idx) => (
+                      <div key={idx} className="relative h-14 w-14 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group bg-white">
+                        <img src={imgUrl} alt={`Product ${idx}`} className="h-full w-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveImage(idx)}
+                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-150 cursor-pointer"
+                        >
+                          <X className="h-4.5 w-4.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Upload Action buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={fileInputRef}
+                    onChange={(e) => handleUploadFile(e, false)}
+                    className="hidden" 
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 bg-white dark:bg-zinc-900 dark:hover:bg-zinc-850 py-2.5 text-xs font-bold text-zinc-650 dark:text-zinc-300 transition-all inline-flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    {uploadingImage ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-emerald-500" />
+                    ) : (
+                      <Upload className="h-4 w-4 text-emerald-500" />
+                    )}
+                    Upload Photo
+                  </button>
+
+                  {/* Native mobile camera capture trigger */}
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    capture="environment" 
+                    ref={cameraInputRef}
+                    onChange={(e) => handleUploadFile(e, true)}
+                    className="hidden" 
+                  />
+                  <button
+                    type="button"
+                    disabled={uploadingImage}
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="rounded-xl border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 bg-white dark:bg-zinc-900 dark:hover:bg-zinc-850 py-2.5 text-xs font-bold text-zinc-650 dark:text-zinc-300 transition-all inline-flex items-center justify-center gap-1 cursor-pointer"
+                  >
+                    <Camera className="h-4 w-4 text-indigo-500" />
+                    Camera Snapshot
+                  </button>
+                </div>
+
+                {/* Paste Link options */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Or paste image URL link here..."
+                    value={imageLink}
+                    onChange={(e) => setImageLink(e.target.value)}
+                    className="h-9 flex-1 rounded-xl border border-zinc-200 bg-white px-3 text-xs outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddLink}
+                    className="rounded-xl border border-zinc-200 hover:bg-zinc-50 bg-white px-3.5 text-xs font-bold text-zinc-700 shrink-0 inline-flex items-center gap-1 cursor-pointer dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-850 dark:text-zinc-300"
+                  >
+                    <Link2 className="h-3.5 w-3.5 text-zinc-500" />
+                    Add Link
+                  </button>
+                </div>
+
+              </div>
+
+              {/* Remainder fields */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">SKU Code</label>
