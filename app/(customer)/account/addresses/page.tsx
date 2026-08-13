@@ -34,6 +34,8 @@ export default async function AddressesPage() {
     addressType: addr.addressType,
     deliveryInstructions: addr.deliveryInstructions,
     isDefault: addr.isDefault,
+    latitude: addr.latitude,
+    longitude: addr.longitude,
   }));
 
   return (
