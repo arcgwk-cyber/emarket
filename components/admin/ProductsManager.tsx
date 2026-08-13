@@ -86,6 +86,7 @@ export default function ProductsManager({
   // Form states
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
+  const [isSkuManuallyEdited, setIsSkuManuallyEdited] = useState(false);
   const [categoryId, setCategoryId] = useState('');
   const [brandId, setBrandId] = useState('');
   const [description, setDescription] = useState('');
@@ -103,10 +104,43 @@ export default function ProductsManager({
   const [images, setImages] = useState<string[]>([]);
   const [imageLink, setImageLink] = useState('');
 
+  const generateAndSetSKU = (prodName: string, catId: string) => {
+    if (!prodName.trim()) {
+      setSku('');
+      return;
+    }
+    const cat = categoriesList.find(c => c.id === catId);
+    const catPrefix = cat 
+      ? cat.name.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '') 
+      : 'PRD';
+    const namePrefix = prodName
+      .trim()
+      .substring(0, 3)
+      .toUpperCase()
+      .replace(/[^A-Z]/g, '');
+    const randSuffix = Math.floor(1000 + Math.random() * 9000);
+    setSku(`${catPrefix}-${namePrefix}-${randSuffix}`);
+  };
+
+  const handleNameChange = (newName: string) => {
+    setName(newName);
+    if (!editingProduct && !isSkuManuallyEdited) {
+      generateAndSetSKU(newName, categoryId);
+    }
+  };
+
+  const handleCategoryChange = (newCatId: string) => {
+    setCategoryId(newCatId);
+    if (!editingProduct && !isSkuManuallyEdited) {
+      generateAndSetSKU(name, newCatId);
+    }
+  };
+
   const openAddModal = () => {
     setEditingProduct(null);
     setName('');
     setSku('');
+    setIsSkuManuallyEdited(false);
     setCategoryId(categoriesList[0]?.id || '');
     setBrandId('');
     setDescription('');
@@ -128,6 +162,7 @@ export default function ProductsManager({
     setEditingProduct(prod);
     setName(prod.name);
     setSku(prod.sku);
+    setIsSkuManuallyEdited(true);
     setCategoryId(prod.categoryId);
     setBrandId(prod.brandId || '');
     setDescription(prod.description || '');
@@ -139,7 +174,7 @@ export default function ProductsManager({
     setWeightG(prod.weightG ? prod.weightG.toString() : '');
     setIsFeatured(prod.isFeatured);
     setInitialStock('0');
-    setStockAdjustment('0');
+    setStockAdjustment(prod.stockType); // temporary store
     setImages(prod.images || []);
     setImageLink('');
     setIsModalOpen(true);
@@ -210,6 +245,19 @@ export default function ProductsManager({
     });
   };
 
+  // Convert Base64 string to Blob File object to upload to server
+  const base64ToFile = (base64String: string, filename: string): File => {
+    const arr = base64String.split(',');
+    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new File([u8arr], filename, { type: mime });
+  };
+
   const handleAddLink = () => {
     if (!imageLink.trim()) return;
     setImages(prev => [...prev, imageLink.trim()]);
@@ -224,6 +272,36 @@ export default function ProductsManager({
     e.preventDefault();
     setLoading(true);
 
+    let finalImages = [...images];
+
+    // Upload base64 compressed images with proper product_name_weight names
+    for (let i = 0; i < finalImages.length; i++) {
+      const img = finalImages[i];
+      if (img.startsWith('data:')) {
+        try {
+          const fileObj = base64ToFile(img, 'temp.jpeg');
+          const formData = new FormData();
+          formData.append('file', fileObj);
+          formData.append('productName', name);
+          formData.append('weightG', weightG || '0');
+
+          const uploadRes = await fetch('/api/admin/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (uploadRes.ok) {
+            const uploadJson = await uploadRes.json();
+            if (uploadJson.success && uploadJson.url) {
+              finalImages[i] = uploadJson.url; // Replace with server relative file path!
+            }
+          }
+        } catch (uploadErr) {
+          console.warn('Could not save image to local folder, keeping inline base64:', uploadErr);
+        }
+      }
+    }
+
     const payload = {
       name,
       sku,
@@ -237,7 +315,7 @@ export default function ProductsManager({
       stockType,
       weightG: weightG ? parseInt(weightG) : null,
       isFeatured,
-      images,
+      images: finalImages,
       initialStock: editingProduct ? undefined : parseInt(initialStock),
       stockAdjustment: editingProduct ? parseInt(stockAdjustment) : undefined,
     };
@@ -496,7 +574,7 @@ export default function ProductsManager({
                       <th className="p-4 pr-6 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-750 dark:text-zinc-300">
+                  <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-755 dark:text-zinc-300">
                     {productsList.map((prod) => (
                       <tr key={prod.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-850/20">
                         <td className="p-4 pl-6 flex items-center gap-3">
@@ -516,7 +594,7 @@ export default function ProductsManager({
                               {prod.name}
                             </span>
                             <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
-                              Unit: 1 {prod.stockType}
+                              Unit: {prod.weightG ? `${prod.weightG}g` : `1 ${prod.stockType}`}
                             </span>
                           </div>
                         </td>
@@ -633,7 +711,7 @@ export default function ProductsManager({
                   type="text"
                   required
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="e.g. Fresh Organic Tomatoes"
                   className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-emerald-500 dark:text-zinc-200"
                 />
@@ -723,25 +801,40 @@ export default function ProductsManager({
 
               </div>
 
-              {/* Remainder fields */}
+              {/* SKU CODE WITH AUTO GENERATION BUTTON */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">SKU Code</label>
-                  <input
-                    type="text"
-                    required
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    placeholder="VEG-TOM-001"
-                    className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-emerald-500 dark:text-zinc-200"
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      type="text"
+                      required
+                      value={sku}
+                      onChange={(e) => {
+                        setSku(e.target.value);
+                        setIsSkuManuallyEdited(true);
+                      }}
+                      placeholder="VEG-TOM-1234"
+                      className="h-10 flex-1 rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-emerald-500 dark:text-zinc-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        generateAndSetSKU(name, categoryId);
+                        setIsSkuManuallyEdited(false);
+                      }}
+                      className="rounded-xl border border-zinc-200 hover:bg-zinc-50 bg-white px-3.5 text-xs font-bold text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:bg-zinc-850 dark:text-zinc-300 transition-colors cursor-pointer shrink-0"
+                    >
+                      Auto
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] font-bold uppercase text-zinc-400">Category</label>
                   <select
                     value={categoryId}
-                    onChange={(e) => setCategoryId(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="h-10 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 px-3 text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-emerald-500 dark:text-zinc-200"
                   >
                     {categoriesList.map(cat => (
