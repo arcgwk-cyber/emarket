@@ -16,7 +16,10 @@ import {
   X, 
   LogOut,
   ShieldAlert,
-  User
+  User,
+  Ticket,
+  RefreshCw,
+  PackagePlus
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -38,6 +41,9 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     { name: 'Order Management', href: '/admin/orders', icon: ClipboardList },
     { name: 'Delivery Dispatch', href: '/admin/deliveries', icon: Truck },
     { name: 'Cloud Kitchen Board', href: '/admin/kitchen', icon: Utensils },
+    { name: 'Coupons & Promos', href: '/admin/coupons', icon: Ticket },
+    { name: 'Returns & Refunds', href: '/admin/returns', icon: RefreshCw },
+    { name: 'Bulk Stock Inward', href: '/admin/inward', icon: PackagePlus },
     { name: 'Platform Settings', href: '/admin/settings', icon: Settings },
   ];
 

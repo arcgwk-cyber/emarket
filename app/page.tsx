@@ -16,6 +16,7 @@ import { db } from '@/lib/db';
 import { categories, products } from '@/lib/db/schema';
 import { sql } from 'drizzle-orm';
 import PwaInstallBanner from '@/components/customer/PwaInstallBanner';
+import HeroSlider from '@/components/customer/HeroSlider';
 
 // Fallback Mock Data in case DB is not yet populated
 const FALLBACK_CATEGORIES = [
@@ -114,51 +115,8 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-10 px-4 py-8 sm:px-6 lg:px-8 max-w-7xl mx-auto font-sans">
       
-      {/* 1. HERO BANNER SECTION */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.1),transparent)]" />
-        <div className="relative flex flex-col md:flex-row items-center justify-between gap-8 p-8 sm:p-12 md:p-16">
-          <div className="flex flex-col gap-6 max-w-xl text-center md:text-left items-center md:items-start">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3.5 py-1.5 text-xs font-bold tracking-wider uppercase text-emerald-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              All-In-One Delivery Marketplace
-            </div>
-            <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight leading-tight">
-              Fresh Groceries & <span className="text-emerald-300">Cloud Kitchen</span> Served Instantly
-            </h1>
-            <p className="text-sm sm:text-base text-zinc-100/90 leading-relaxed font-medium">
-              Get organic vegetables, fresh meats, dairy, or hot chef-made diet plans delivered in active daily slots. Activate subscriptions for daily fresh milk and meals.
-            </p>
-            <div className="flex flex-wrap gap-4 mt-2 justify-center md:justify-start">
-              <Link 
-                href="/catalog" 
-                className="rounded-full bg-white hover:bg-zinc-100 text-emerald-800 font-bold px-6 py-3 text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2"
-              >
-                Browse Supermarket
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link 
-                href="/catalog?category=cloud-kitchen" 
-                className="rounded-full border border-white/30 bg-white/10 hover:bg-white/20 text-white font-bold px-6 py-3 text-xs sm:text-sm backdrop-blur-sm transition-all active:scale-95 flex items-center gap-2"
-              >
-                Order Hot Food
-                <Utensils className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-          <div className="relative w-full max-w-[280px] sm:max-w-[340px] aspect-square flex justify-center items-center">
-            <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-3xl" />
-            <Image 
-              src="https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80"
-              alt="Grocery Box Mockup"
-              width={350}
-              height={350}
-              priority
-              className="rounded-2xl shadow-2xl object-cover border-4 border-emerald-500/20 transform rotate-2 hover:rotate-0 transition-transform duration-300"
-            />
-          </div>
-        </div>
-      </section>
+      {/* 1. HERO BANNER SECTION (SLIDER) */}
+      <HeroSlider />
 
       {/* 2. CATEGORIES ROW */}
       <section className="flex flex-col gap-4">

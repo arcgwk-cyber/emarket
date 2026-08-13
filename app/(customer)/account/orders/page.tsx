@@ -7,6 +7,8 @@ import { orders } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/services/auth';
 
+import OrderCard from '@/components/customer/OrderCard';
+
 export default async function OrdersPage() {
   const user = await getCurrentUser();
 
@@ -43,7 +45,7 @@ export default async function OrdersPage() {
       case 'failed':
         return 'bg-rose-50 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400 border-rose-100 dark:border-rose-900/30';
       default:
-        return 'bg-zinc-50 text-zinc-650 dark:bg-zinc-900 dark:text-zinc-400 border-zinc-100 dark:border-zinc-800';
+        return 'bg-zinc-50 text-zinc-655 dark:bg-zinc-900 dark:text-zinc-400 border-zinc-100 dark:border-zinc-800';
     }
   };
 
@@ -51,7 +53,7 @@ export default async function OrdersPage() {
     return status.replace(/_/g, ' ').toUpperCase();
   };
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
@@ -100,91 +102,32 @@ export default async function OrdersPage() {
         ) : (
           <div className="space-y-4">
             {list.map((order) => {
-              const activeTracking = ['pending', 'confirmed', 'preparing', 'ready_for_dispatch', 'out_for_delivery'].includes(order.status);
+              // Convert types to match client side simple interface
+              const cleanOrder = {
+                id: order.id,
+                orderNumber: order.orderNumber,
+                status: order.status,
+                paymentMethod: order.paymentMethod || 'cod',
+                paymentStatus: order.paymentStatus,
+                totalAmount: order.totalAmount,
+                createdAt: order.createdAt,
+                items: order.items.map(item => ({
+                  id: item.id,
+                  quantity: item.quantity,
+                  price: item.price,
+                  finalPrice: item.finalPrice,
+                  product: item.product ? { id: item.product.id, name: item.product.name } : null,
+                  variant: item.variant ? { id: item.variant.id, name: item.variant.name } : null
+                }))
+              };
               return (
-                <div 
+                <OrderCard
                   key={order.id}
-                  className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-5 rounded-3xl shadow-sm space-y-4"
-                >
-                  {/* Order Top Info */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-zinc-50 dark:border-zinc-800">
-                    <div>
-                      <span className="text-[10px] font-black text-zinc-400 uppercase tracking-wide">
-                        Order Number
-                      </span>
-                      <h4 className="text-xs font-black text-zinc-800 dark:text-zinc-200 mt-0.5">
-                        {order.orderNumber}
-                      </h4>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-full text-[9px] font-black border uppercase tracking-wider ${getStatusBadge(order.status)}`}>
-                        {formatStatus(order.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Order Details Grid */}
-                  <div className="grid grid-cols-2 gap-4 text-xs">
-                    <div className="flex items-center gap-2 text-zinc-500">
-                      <Calendar className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span>{formatDate(order.createdAt)}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-zinc-500 justify-end">
-                      <CreditCard className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="capitalize">{order.paymentMethod} • {order.paymentStatus}</span>
-                    </div>
-                  </div>
-
-                  {/* Order Items List */}
-                  <div className="space-y-2 py-1">
-                    {order.items.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between gap-4 py-1 text-xs">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-bold text-zinc-700 dark:text-zinc-300 truncate">
-                            {item.product?.name}
-                            {item.variant && (
-                              <span className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium ml-1.5">
-                                ({item.variant.name})
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
-                            Qty: {item.quantity} • ₹{item.price} each
-                          </p>
-                        </div>
-                        <span className="font-black text-zinc-800 dark:text-zinc-200 shrink-0">
-                          ₹{item.finalPrice}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Totals & Tracker link */}
-                  <div className="flex items-center justify-between pt-3 border-t border-zinc-50 dark:border-zinc-800">
-                    <div>
-                      <span className="text-[9px] font-black text-zinc-400 uppercase tracking-wide">
-                        Total Paid
-                      </span>
-                      <p className="text-sm font-black text-zinc-950 dark:text-zinc-50 leading-none mt-1">
-                        ₹{order.totalAmount}
-                      </p>
-                    </div>
-
-                    {activeTracking ? (
-                      <Link
-                        href={`/tracking/${order.id}`}
-                        className="rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 hover:bg-emerald-100 px-4 py-2 text-xs font-bold transition-all inline-flex items-center gap-1"
-                      >
-                        Track Order
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-zinc-400">
-                        Completed
-                      </span>
-                    )}
-                  </div>
-                </div>
+                  order={cleanOrder}
+                  formatStatus={formatStatus}
+                  getStatusBadge={getStatusBadge}
+                  formatDate={formatDate}
+                />
               );
             })}
           </div>

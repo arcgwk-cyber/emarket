@@ -108,19 +108,21 @@ export default function CheckoutFlow({
     setCouponError('');
     
     try {
-      // Mock validation logic client side for UI representation (checkout API strictly validates it again server-side)
-      if (couponCode.toUpperCase() === 'WELCOME100') {
-        if (subtotal < 499) {
-          setCouponError('Minimum order of ₹499 required');
-          return;
-        }
-        setDiscount(100);
-        setCouponApplied(true);
-      } else if (couponCode.toUpperCase() === 'DAILYMILK') {
-        setDiscount(subtotal * 0.10);
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: couponCode.trim().toUpperCase(),
+          subtotal: subtotal,
+        }),
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success) {
+        setDiscount(parseFloat(json.data.discountAmount));
         setCouponApplied(true);
       } else {
-        setCouponError('Invalid or expired coupon code');
+        setCouponError(json.message || 'Invalid or expired coupon code');
       }
     } catch (e) {
       setCouponError('Error verifying coupon');
