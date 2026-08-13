@@ -296,7 +296,7 @@ export default async function HomePage() {
                 </div>
 
                 <button 
-                  className="rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all flex items-center gap-1"
+                  className="rounded-lg bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all flex items-center gap-1"
                 >
                   Add
                 </button>

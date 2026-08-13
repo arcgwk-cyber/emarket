@@ -447,7 +447,7 @@ export default function CatalogWrapper({
                           className={`rounded-lg active:scale-95 text-[11px] font-extrabold px-3 py-1.5 shadow-sm transition-all cursor-pointer ${
                             isAdded
                               ? 'bg-emerald-600 text-white border border-emerald-600'
-                              : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                              : 'bg-orange-500 hover:bg-orange-600 text-white'
                           }`}
                         >
                           {isAdded ? 'Added ✓' : 'Add'}

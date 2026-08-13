@@ -356,7 +356,7 @@ export default function ProductDetailWrapper({
                 className={`flex-1 rounded-xl active:scale-95 text-white text-xs font-black py-4 shadow-md transition-all flex items-center justify-center gap-2 ${
                   isAdded
                     ? 'bg-emerald-600 border border-emerald-600'
-                    : 'bg-emerald-500 hover:bg-emerald-600'
+                    : 'bg-orange-500 hover:bg-orange-600'
                 }`}
               >
                 <ShoppingCart className="h-4.5 w-4.5" />
