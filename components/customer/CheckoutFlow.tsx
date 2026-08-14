@@ -195,6 +195,7 @@ export default function CheckoutFlow({
       const json = await res.json();
       if (res.ok && json.success) {
         setSuccessOrder(json.data);
+        window.dispatchEvent(new Event('cart-updated'));
         confetti({
           particleCount: 150,
           spread: 70,
