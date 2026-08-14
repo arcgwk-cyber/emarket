@@ -58,6 +58,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
       slug: product.category.slug,
     },
     brand: product.brand ? { name: product.brand.name } : null,
+    dietType: product.dietType,
+    dietaryPreferences: product.dietaryPreferences,
     variants: product.variants.map((v) => ({
       id: v.id,
       name: v.name,

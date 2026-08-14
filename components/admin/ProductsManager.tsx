@@ -37,6 +37,8 @@ interface Product {
   images?: string[] | null;
   category?: { name: string } | null;
   brand?: { name: string } | null;
+  dietType?: string | null;
+  dietaryPreferences?: string[] | null;
 }
 
 interface Category {
@@ -99,6 +101,8 @@ export default function ProductsManager({
   const [isFeatured, setIsFeatured] = useState(false);
   const [initialStock, setInitialStock] = useState('0');
   const [stockAdjustment, setStockAdjustment] = useState('0');
+  const [dietType, setDietType] = useState('veg');
+  const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
   
   // Image Manager states
   const [images, setImages] = useState<string[]>([]);
@@ -153,6 +157,8 @@ export default function ProductsManager({
     setIsFeatured(false);
     setInitialStock('0');
     setStockAdjustment('0');
+    setDietType('veg');
+    setDietaryPreferences([]);
     setImages([]);
     setImageLink('');
     setIsModalOpen(true);
@@ -175,6 +181,8 @@ export default function ProductsManager({
     setIsFeatured(prod.isFeatured);
     setInitialStock('0');
     setStockAdjustment(prod.stockType); // temporary store
+    setDietType(prod.dietType || 'veg');
+    setDietaryPreferences(prod.dietaryPreferences || []);
     setImages(prod.images || []);
     setImageLink('');
     setIsModalOpen(true);
@@ -318,6 +326,8 @@ export default function ProductsManager({
       images: finalImages,
       initialStock: editingProduct ? undefined : parseInt(initialStock),
       stockAdjustment: editingProduct ? parseInt(stockAdjustment) : undefined,
+      dietType,
+      dietaryPreferences,
     };
 
     try {
@@ -596,6 +606,31 @@ export default function ProductsManager({
                             <span className="text-[10px] text-zinc-400 capitalize block mt-0.5">
                               Unit: {prod.weightG ? `${prod.weightG}g` : `1 ${prod.stockType}`}
                             </span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {prod.dietType === 'veg' && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-green-50 px-1 py-0.2 text-[8px] font-black uppercase text-green-700 dark:bg-green-950/20 dark:text-green-400 border border-green-200/30">
+                                  <span className="h-1 w-1 rounded-full bg-green-500" />
+                                  Veg
+                                </span>
+                              )}
+                              {prod.dietType === 'non-veg' && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-red-50 px-1 py-0.2 text-[8px] font-black uppercase text-red-700 dark:bg-red-950/20 dark:text-red-400 border border-red-200/30">
+                                  <span className="h-1 w-1 rounded-full bg-red-500" />
+                                  Non-Veg
+                                </span>
+                              )}
+                              {prod.dietType === 'eggitarian' && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-amber-50 px-1 py-0.2 text-[8px] font-black uppercase text-amber-700 dark:bg-amber-950/20 dark:text-amber-400 border border-amber-200/30">
+                                  <span className="h-1 w-1 rounded-full bg-amber-500" />
+                                  Egg
+                                </span>
+                              )}
+                              {prod.dietaryPreferences && prod.dietaryPreferences.map((tag) => (
+                                <span key={tag} className="inline-flex items-center rounded bg-zinc-100 px-1 py-0.2 text-[8px] font-bold text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200/20">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </td>
                         <td className="p-4 font-mono">{prod.sku}</td>
@@ -963,6 +998,59 @@ export default function ProductsManager({
                   placeholder="One sentence description of item..."
                   className="h-16 w-full rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-xs font-semibold outline-none focus:border-emerald-500 focus:bg-white dark:border-zinc-800 dark:bg-zinc-950 dark:focus:border-emerald-500 dark:text-zinc-200"
                 />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Diet Type</label>
+                <div className="flex gap-2.5">
+                  {[
+                    { value: 'veg', label: 'Veg', color: 'border-green-500 text-green-500 bg-green-50/10' },
+                    { value: 'non-veg', label: 'Non-Veg', color: 'border-red-500 text-red-500 bg-red-50/10' },
+                    { value: 'eggitarian', label: 'Eggitarian', color: 'border-amber-550 text-amber-600 bg-amber-50/10' }
+                  ].map((diet) => {
+                    const isSelected = dietType === diet.value;
+                    return (
+                      <button
+                        key={diet.value}
+                        type="button"
+                        onClick={() => setDietType(diet.value)}
+                        className={`flex-1 h-9 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                          isSelected 
+                            ? `${diet.color} shadow-sm border-2`
+                            : 'border-zinc-200 bg-white text-zinc-650 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-850'
+                        }`}
+                      >
+                        {diet.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Dietary & Fitness Preferences</label>
+                <div className="grid grid-cols-2 gap-2 bg-zinc-50/50 dark:bg-zinc-950/20 p-3 rounded-2xl border border-zinc-200/50 dark:border-zinc-800/50">
+                  {['Weight Loss', 'Gain Weight', 'Bulking', 'Post-workout', 'Pre-workout', 'Diabetic'].map((pref) => {
+                    const isChecked = dietaryPreferences.includes(pref);
+                    return (
+                      <label key={pref} className="flex items-center gap-2 text-xs font-semibold text-zinc-700 dark:text-zinc-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            if (isChecked) {
+                              setDietaryPreferences(prev => prev.filter(p => p !== pref));
+                            } else {
+                              setDietaryPreferences(prev => [...prev, pref]);
+                            }
+                          }}
+                          className="h-4 w-4 rounded border-zinc-350 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                        />
+                        <span>{pref}</span>
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="flex items-center gap-2 pt-2">

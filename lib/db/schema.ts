@@ -158,6 +158,8 @@ export const products = pgTable('products', {
   seoKeywords: text('seo_keywords'),
   isVariableWeight: boolean('is_variable_weight').default(false).notNull(),
   priceAdjustmentRule: jsonb('price_adjustment_rule'), // Rule config for packed weights
+  dietType: varchar('diet_type', { length: 20 }), // veg, non-veg, eggitarian
+  dietaryPreferences: text('dietary_preferences').array(), // Weight Loss, Gain Weight, Bulking, Post workout, Preworkout, Diabetic
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),

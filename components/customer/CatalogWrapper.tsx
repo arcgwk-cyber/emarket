@@ -34,6 +34,8 @@ interface Product {
   isFeatured: boolean;
   category: { name: string; slug: string };
   brand?: { name: string } | null;
+  dietType?: string | null;
+  dietaryPreferences?: string[] | null;
   variants: Variant[];
 }
 
@@ -67,6 +69,8 @@ export default function CatalogWrapper({
   const currentMinPrice = searchParams.get('minPrice') || '';
   const currentMaxPrice = searchParams.get('maxPrice') || '';
   const currentSortBy = searchParams.get('sortBy') || 'newest';
+  const currentDietType = searchParams.get('dietType') || '';
+  const currentDietary = searchParams.get('dietary') || '';
 
   // Local filter states
   const [search, setSearch] = useState(currentQuery);
@@ -183,6 +187,16 @@ export default function CatalogWrapper({
     setLoading(true);
     router.push(`/catalog?${params.toString()}`);
     setLoading(false);
+  };
+
+  const handleDietaryToggle = (tag: string) => {
+    let activeTags = currentDietary ? currentDietary.split(',') : [];
+    if (activeTags.includes(tag)) {
+      activeTags = activeTags.filter(t => t !== tag);
+    } else {
+      activeTags.push(tag);
+    }
+    updateFilters({ dietary: activeTags.join(',') });
   };
 
   const handleClearAll = () => {
@@ -314,6 +328,64 @@ export default function CatalogWrapper({
             </div>
           </div>
 
+          {/* Diet Type list */}
+          <div className="flex flex-col gap-3">
+            <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Diet Type</h4>
+            <div className="flex flex-col gap-2">
+              {[
+                { value: 'veg', label: 'Veg Only', dotColor: 'bg-green-500' },
+                { value: 'non-veg', label: 'Non-Veg Only', dotColor: 'bg-red-500' },
+                { value: 'eggitarian', label: 'Eggitarian Only', dotColor: 'bg-amber-500' },
+              ].map((diet) => {
+                const isActive = currentDietType === diet.value;
+                return (
+                  <button
+                    key={diet.value}
+                    onClick={() => updateFilters({ dietType: isActive ? '' : diet.value })}
+                    className={`flex items-center gap-2 text-xs text-left transition-colors ${
+                      isActive 
+                        ? 'text-emerald-500 font-bold' 
+                        : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${isActive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-zinc-300'}`}>
+                      {isActive && '✓'}
+                    </span>
+                    <span className={`h-1.5 w-1.5 rounded-full ${diet.dotColor}`} />
+                    {diet.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Fitness Diets list */}
+          <div className="flex flex-col gap-3">
+            <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Fitness & Special Diet</h4>
+            <div className="flex flex-col gap-2">
+              {['Weight Loss', 'Gain Weight', 'Bulking', 'Post-workout', 'Pre-workout', 'Diabetic'].map((pref) => {
+                const activeTags = currentDietary ? currentDietary.split(',') : [];
+                const isActive = activeTags.includes(pref);
+                return (
+                  <button
+                    key={pref}
+                    onClick={() => handleDietaryToggle(pref)}
+                    className={`flex items-center gap-2 text-xs text-left transition-colors ${
+                      isActive 
+                        ? 'text-emerald-500 font-bold' 
+                        : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                    }`}
+                  >
+                    <span className={`h-3.5 w-3.5 rounded border flex items-center justify-center ${isActive ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-zinc-300'}`}>
+                      {isActive && '✓'}
+                    </span>
+                    {pref}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Price Range inputs */}
           <div className="flex flex-col gap-3">
             <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Price Range</h4>
@@ -403,11 +475,31 @@ export default function CatalogWrapper({
                         )}
                       </div>
                       
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
-                        {prod.category.name}
-                      </span>
-                      <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug">
-                        {prod.name}
+                      <div className="flex flex-wrap items-center gap-1">
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">
+                          {prod.category.name}
+                        </span>
+                        {prod.dietaryPreferences && prod.dietaryPreferences.map((tag) => (
+                          <span key={tag} className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1 py-0.2 rounded border border-emerald-100/30">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                      <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug flex items-start gap-1.5">
+                        {prod.dietType && (
+                          <span className={`inline-flex items-center justify-center border h-3.5 w-3.5 rounded shrink-0 mt-0.5 ${
+                            prod.dietType === 'veg' ? 'border-green-600 dark:border-green-500' : 
+                            prod.dietType === 'non-veg' ? 'border-red-600 dark:border-red-500' :
+                            'border-amber-600 dark:border-amber-500'
+                          }`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${
+                              prod.dietType === 'veg' ? 'bg-green-600 dark:bg-green-500' :
+                              prod.dietType === 'non-veg' ? 'bg-red-600 dark:bg-red-500' :
+                              'bg-amber-600 dark:bg-amber-550'
+                            }`} />
+                          </span>
+                        )}
+                        <span>{prod.name}</span>
                       </h3>
                     </Link>
 
@@ -520,6 +612,61 @@ export default function CatalogWrapper({
                         }`}
                       >
                         {cat.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Diet Type */}
+              <div className="flex flex-col gap-3">
+                <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Diet Type</h4>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: 'veg', label: 'Veg Only' },
+                    { value: 'non-veg', label: 'Non-Veg Only' },
+                    { value: 'eggitarian', label: 'Eggitarian Only' },
+                  ].map((diet) => {
+                    const isActive = currentDietType === diet.value;
+                    return (
+                      <button
+                        key={diet.value}
+                        onClick={() => {
+                          updateFilters({ dietType: isActive ? '' : diet.value });
+                        }}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                          isActive 
+                            ? 'bg-emerald-500 border-emerald-500 text-white' 
+                            : 'border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400'
+                        }`}
+                      >
+                        {diet.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Special Fitness Diets */}
+              <div className="flex flex-col gap-3">
+                <h4 className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">Fitness & Special Diet</h4>
+                <div className="flex flex-wrap gap-2">
+                  {['Weight Loss', 'Gain Weight', 'Bulking', 'Post-workout', 'Pre-workout', 'Diabetic'].map((pref) => {
+                    const activeTags = currentDietary ? currentDietary.split(',') : [];
+                    const isActive = activeTags.includes(pref);
+                    return (
+                      <button
+                        key={pref}
+                        onClick={() => {
+                          handleDietaryToggle(pref);
+                        }}
+                        className={`rounded-full px-3 py-1.5 text-xs font-semibold border transition-all ${
+                          isActive 
+                            ? 'bg-emerald-500 border-emerald-500 text-white' 
+                            : 'border-zinc-200 text-zinc-600 dark:border-zinc-800 dark:text-zinc-400'
+                        }`}
+                      >
+                        {pref}
                       </button>
                     );
                   })}

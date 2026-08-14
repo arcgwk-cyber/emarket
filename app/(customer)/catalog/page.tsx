@@ -12,6 +12,8 @@ interface CatalogPageProps {
     minPrice?: string;
     maxPrice?: string;
     sortBy?: string;
+    dietType?: string;
+    dietary?: string;
   }>;
 }
 
@@ -23,6 +25,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
   const minPrice = resolvedParams.minPrice || '';
   const maxPrice = resolvedParams.maxPrice || '';
   const sortBy = resolvedParams.sortBy || 'newest';
+  const dietType = resolvedParams.dietType || '';
+  const dietary = resolvedParams.dietary || '';
 
   let categoriesTree: any[] = [];
   let activeBrands: any[] = [];
@@ -96,6 +100,17 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       conditions.push(lte(products.sellingPrice, maxPrice));
     }
 
+    if (dietType) {
+      conditions.push(eq(products.dietType, dietType));
+    }
+
+    if (dietary) {
+      const tags = dietary.split(',').filter(Boolean);
+      tags.forEach(tag => {
+        conditions.push(sql`${tag} = ANY(${products.dietaryPreferences})`);
+      });
+    }
+
     // Define sort orders
     let orderBy: any = desc(products.createdAt);
     if (sortBy === 'price_asc') {
@@ -134,6 +149,8 @@ export default async function CatalogPage({ searchParams }: CatalogPageProps) {
       stockType: prod.stockType,
       images: prod.images,
       isFeatured: prod.isFeatured,
+      dietType: prod.dietType,
+      dietaryPreferences: prod.dietaryPreferences,
       category: {
         name: prod.category.name,
         slug: prod.category.slug,

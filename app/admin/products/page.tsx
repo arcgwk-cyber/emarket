@@ -92,6 +92,8 @@ export default async function AdminProductsPage({ searchParams }: AdminProductsP
     images: p.images,
     category: p.category ? { name: p.category.name } : null,
     brand: p.brand ? { name: p.brand.name } : null,
+    dietType: p.dietType,
+    dietaryPreferences: p.dietaryPreferences,
   }));
 
   return (

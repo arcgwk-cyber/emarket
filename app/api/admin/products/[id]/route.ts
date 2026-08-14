@@ -43,7 +43,9 @@ export async function PATCH(
       weightG, 
       isFeatured,
       images,
-      stockAdjustment
+      stockAdjustment,
+      dietType,
+      dietaryPreferences
     } = body;
 
     // 1. Verify product exists
@@ -91,6 +93,8 @@ export async function PATCH(
           weightG: weightG !== undefined ? (weightG ? parseInt(weightG) : null) : undefined,
           isFeatured: isFeatured !== undefined ? !!isFeatured : undefined,
           images: images !== undefined ? (images && Array.isArray(images) ? images : []) : undefined,
+          dietType: dietType !== undefined ? dietType : undefined,
+          dietaryPreferences: dietaryPreferences !== undefined ? dietaryPreferences : undefined,
           updatedAt: new Date(),
         })
         .where(eq(products.id, id))

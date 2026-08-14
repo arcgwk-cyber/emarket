@@ -42,6 +42,8 @@ interface Product {
   isVariableWeight: boolean;
   category: { name: string; slug: string };
   brand?: { name: string } | null;
+  dietType?: string | null;
+  dietaryPreferences?: string[] | null;
   variants: Variant[];
 }
 
@@ -267,6 +269,27 @@ export default function ProductDetailWrapper({
               </div>
             </div>
             
+            {product.dietType && (
+              <div className="flex flex-wrap items-center gap-1.5 mb-1.5">
+                <span className={`inline-flex items-center gap-1 rounded bg-zinc-50 border px-2 py-0.5 text-[10px] font-black uppercase tracking-wide ${
+                  product.dietType === 'veg' ? 'border-green-200 text-green-700 dark:border-green-900/35 dark:text-green-400 dark:bg-green-950/15' : 
+                  product.dietType === 'non-veg' ? 'border-red-200 text-red-700 dark:border-red-900/35 dark:text-red-400 dark:bg-red-950/15' :
+                  'border-amber-200 text-amber-700 dark:border-amber-900/35 dark:text-amber-400 dark:bg-amber-950/15'
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${
+                    product.dietType === 'veg' ? 'bg-green-500' :
+                    product.dietType === 'non-veg' ? 'bg-red-500' :
+                    'bg-amber-500'
+                  }`} />
+                  {product.dietType === 'veg' ? 'Veg' : product.dietType === 'non-veg' ? 'Non-Veg' : 'Egg'}
+                </span>
+                {product.dietaryPreferences && product.dietaryPreferences.map((tag) => (
+                  <span key={tag} className="inline-flex items-center rounded bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 border border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
               {product.name}
             </h1>

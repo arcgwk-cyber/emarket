@@ -83,6 +83,8 @@ const FALLBACK_PRODUCTS = [
     imageUrl: 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=400&auto=format&fit=crop&q=60',
     categorySlug: 'cloud-kitchen',
     rating: 4.9,
+    dietType: 'non-veg',
+    dietaryPreferences: ['Bulking', 'Gain Weight'],
   },
   {
     id: '6',
@@ -94,6 +96,8 @@ const FALLBACK_PRODUCTS = [
     imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=60',
     categorySlug: 'healthy-meals',
     rating: 4.8,
+    dietType: 'non-veg',
+    dietaryPreferences: ['Weight Loss', 'Diabetic', 'Post-workout'],
   }
 ];
 
@@ -232,10 +236,32 @@ export default async function HomePage() {
                     {prod.rating || '4.8'}
                   </span>
                 </div>
-                <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug">
-                  {prod.name}
+                <h3 className="text-xs sm:text-sm font-bold text-zinc-800 dark:text-zinc-200 line-clamp-2 leading-snug flex items-start gap-1.5">
+                  {prod.dietType && (
+                    <span className={`inline-flex items-center justify-center border h-3.5 w-3.5 rounded shrink-0 mt-0.5 ${
+                      prod.dietType === 'veg' ? 'border-green-600 dark:border-green-500' : 
+                      prod.dietType === 'non-veg' ? 'border-red-600 dark:border-red-500' :
+                      'border-amber-600 dark:border-amber-500'
+                    }`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        prod.dietType === 'veg' ? 'bg-green-600 dark:bg-green-500' :
+                        prod.dietType === 'non-veg' ? 'bg-red-600 dark:bg-red-500' :
+                        'bg-amber-600 dark:bg-amber-550'
+                      }`} />
+                    </span>
+                  )}
+                  <span>{prod.name}</span>
                 </h3>
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 rounded self-start">
+                {prod.dietaryPreferences && prod.dietaryPreferences.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {prod.dietaryPreferences.slice(0, 2).map((tag: string) => (
+                      <span key={tag} className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1 py-0.2 rounded border border-emerald-100/30">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium bg-zinc-50 dark:bg-zinc-800 px-2 py-0.5 rounded self-start mt-1">
                   Unit: 1 {prod.stockType || 'kg'}
                 </span>
               </div>

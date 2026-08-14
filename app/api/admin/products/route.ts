@@ -38,7 +38,9 @@ export async function POST(request: Request) {
       weightG, 
       isFeatured,
       images = [],
-      initialStock = 0
+      initialStock = 0,
+      dietType = null,
+      dietaryPreferences = []
     } = body;
 
     if (!name || !sku || !categoryId || !mrp || !sellingPrice) {
@@ -93,6 +95,8 @@ export async function POST(request: Request) {
         isFeatured: !!isFeatured,
         images: images && Array.isArray(images) ? images : [],
         status: 'active',
+        dietType,
+        dietaryPreferences,
       }).returning();
 
       // 5. Initialize stock in inventory
