@@ -82,6 +82,8 @@ export default async function Footer() {
           <Link href="/catalog?category=vegetables" className="hover:text-emerald-500 transition-colors">Fresh Vegetables</Link>
           <Link href="/catalog?category=dairy-eggs" className="hover:text-emerald-500 transition-colors">Dairy & Eggs</Link>
           <Link href="/catalog?category=cloud-kitchen" className="hover:text-emerald-500 transition-colors">Meals on Demand</Link>
+          <Link href="/subscriptions" className="text-emerald-600 dark:text-emerald-400 font-extrabold hover:underline">Weekly Veggie Subscriptions 🥬</Link>
+          <Link href="/rewards" className="text-emerald-600 dark:text-emerald-400 font-extrabold hover:underline">Spin & Win Rewards 🎁</Link>
         </div>
 
         {/* Column 3: Corporate compliance links */}

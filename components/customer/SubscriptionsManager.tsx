@@ -232,6 +232,16 @@ export default function SubscriptionsManager({ initialSubscriptions }: Subscript
                       </div>
                     ) : (
                       <>
+                        {sub.status === 'active' && (
+                          <Link
+                            href={`/account/subscriptions/${sub.id}/customize`}
+                            className="rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 text-xs font-bold transition-all inline-flex items-center gap-1.5 shadow-sm"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-white" />
+                            Customize Basket
+                          </Link>
+                        )}
+
                         {sub.status === 'active' ? (
                           <button
                             onClick={() => handleUpdateStatus(sub.id, 'paused')}

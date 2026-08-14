@@ -45,7 +45,8 @@ export async function PATCH(
       images,
       stockAdjustment,
       dietType,
-      dietaryPreferences
+      dietaryPreferences,
+      subscriptionCategory
     } = body;
 
     // 1. Verify product exists
@@ -95,6 +96,7 @@ export async function PATCH(
           images: images !== undefined ? (images && Array.isArray(images) ? images : []) : undefined,
           dietType: dietType !== undefined ? dietType : undefined,
           dietaryPreferences: dietaryPreferences !== undefined ? dietaryPreferences : undefined,
+          subscriptionCategory: subscriptionCategory !== undefined ? subscriptionCategory : undefined,
           updatedAt: new Date(),
         })
         .where(eq(products.id, id))

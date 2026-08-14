@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { User, MapPin, ClipboardList, Calendar, LogOut, ChevronRight, Loader2, Mail, Phone, Shield } from 'lucide-react';
+import { User, MapPin, ClipboardList, Calendar, LogOut, ChevronRight, Loader2, Mail, Phone, Shield, Gift, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 
 interface AccountWrapperProps {
@@ -129,6 +129,32 @@ export default function AccountWrapper({ user }: AccountWrapperProps) {
               <div>
                 <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">Meal & Milk Subscriptions</span>
                 <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Configure daily slots, pause subscriptions</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          <Link href="/subscriptions" className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors group">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500">
+                <Sparkles className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">Weekly Veggie Subscriptions</span>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Customizable family baskets starting ₹249</p>
+              </div>
+            </div>
+            <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />
+          </Link>
+
+          <Link href="/rewards" className="flex items-center justify-between p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850 transition-colors group">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-50 dark:bg-pink-950/20 text-pink-500">
+                <Gift className="h-4.5 w-4.5" />
+              </div>
+              <div>
+                <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">Spin & Win Rewards</span>
+                <p className="text-[10px] text-zinc-400 dark:text-zinc-500 font-medium">Earn spin credits, win handbag & perfumes</p>
               </div>
             </div>
             <ChevronRight className="h-4 w-4 text-zinc-400 group-hover:translate-x-1 transition-transform" />

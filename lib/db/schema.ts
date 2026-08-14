@@ -160,6 +160,7 @@ export const products = pgTable('products', {
   priceAdjustmentRule: jsonb('price_adjustment_rule'), // Rule config for packed weights
   dietType: varchar('diet_type', { length: 20 }), // veg, non-veg, eggitarian
   dietaryPreferences: text('dietary_preferences').array(), // Weight Loss, Gain Weight, Bulking, Post workout, Preworkout, Diabetic
+  subscriptionCategory: varchar('subscription_category', { length: 30 }), // fixed, garnish, seasonal, cooking, leafy
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   deletedAt: timestamp('deleted_at'),
@@ -573,6 +574,31 @@ export const subscriptionDeliveries = pgTable('subscription_deliveries', {
   orderId: uuid('order_id').references(() => orders.id), // Generated order for this delivery
   deliveryDate: date('delivery_date').notNull(),
   status: varchar('status', { length: 20 }).default('scheduled').notNull(), // scheduled, skipped, delivered, cancelled
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const subscriptionSelections = pgTable('subscription_selections', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  subscriptionId: uuid('subscription_id').references(() => subscriptions.id, { onDelete: 'cascade' }).notNull(),
+  deliveryDate: date('delivery_date').notNull(),
+  selections: jsonb('selections').default({
+    garnish: [],
+    seasonal: [],
+    regular: [],
+    leafy: []
+  }).notNull(),
+  status: varchar('status', { length: 20 }).default('pending').notNull(), // pending, locked, skipped
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const userSpinRewards = pgTable('user_spin_rewards', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  spinsAvailable: integer('spins_available').default(0).notNull(),
+  spinsClaimed: integer('spins_claimed').default(0).notNull(),
+  history: jsonb('history').default([]).notNull(), // array of won prizes
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

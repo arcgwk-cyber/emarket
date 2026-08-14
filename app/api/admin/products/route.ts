@@ -40,7 +40,8 @@ export async function POST(request: Request) {
       images = [],
       initialStock = 0,
       dietType = null,
-      dietaryPreferences = []
+      dietaryPreferences = [],
+      subscriptionCategory = null
     } = body;
 
     if (!name || !sku || !categoryId || !mrp || !sellingPrice) {
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
         status: 'active',
         dietType,
         dietaryPreferences,
+        subscriptionCategory,
       }).returning();
 
       // 5. Initialize stock in inventory

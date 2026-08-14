@@ -4,13 +4,14 @@ import {
   subscriptions, 
   subscriptionItems, 
   subscriptionDeliveries, 
+  subscriptionSelections,
   orders, 
   orderItems, 
   orderStatusHistory, 
   products, 
   productVariants 
 } from '@/lib/db/schema';
-import { eq, and, sql, gte, lte } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, desc, isNull } from 'drizzle-orm';
 import { sendWhatsAppNotification } from '@/lib/services/notifications';
 import crypto from 'crypto';
 
@@ -58,6 +59,7 @@ export async function GET(request: Request) {
       ),
       with: {
         items: true,
+        plan: true,
       },
     });
 
@@ -83,44 +85,154 @@ export async function GET(request: Request) {
 
       // 5. Generate Order in transaction
       await db.transaction(async (tx) => {
-        // Fetch full subscription items details (price, details)
-        const subItemsDetails = await tx.query.subscriptionItems.findMany({
-          where: eq(subscriptionItems.subscriptionId, sub.id),
-          with: {
-            product: true,
-            variant: true,
-          },
-        });
-
-        if (subItemsDetails.length === 0) return;
-
-        // Calculate totals
+        const itemsToInsert: any[] = [];
         let subtotal = 0;
         let taxAmount = 0;
-        const itemsToInsert: any[] = [];
+        let totalAmount = 0;
 
-        for (const item of subItemsDetails) {
-          const price = item.variant ? parseFloat(item.variant.sellingPrice) : parseFloat(item.product.sellingPrice);
-          const itemSubtotal = price * item.quantity;
-          const gstPercent = parseFloat(item.product.gstPercent);
-          const itemTax = itemSubtotal * (gstPercent / 100);
-
-          subtotal += itemSubtotal;
-          taxAmount += itemTax;
-
-          itemsToInsert.push({
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            price: price.toFixed(2),
-            taxPercent: gstPercent.toFixed(2),
-            taxAmount: itemTax.toFixed(2),
-            discountAmount: '0.00',
-            finalPrice: itemSubtotal.toFixed(2),
+        if (sub.planId) {
+          // A. Customizable vegetable basket subscription
+          // 1. Fetch custom selections for today, or roll over from latest selection
+          let selectionRecord = await tx.query.subscriptionSelections.findFirst({
+            where: and(
+              eq(subscriptionSelections.subscriptionId, sub.id),
+              eq(subscriptionSelections.deliveryDate, todayStr)
+            )
           });
-        }
 
-        const totalAmount = subtotal + taxAmount; // Subscriptions usually have free delivery configured in prepaid plans
+          if (!selectionRecord) {
+            // Roll over: find the most recent previous selection record
+            selectionRecord = await tx.query.subscriptionSelections.findFirst({
+              where: eq(subscriptionSelections.subscriptionId, sub.id),
+              orderBy: desc(subscriptionSelections.deliveryDate)
+            });
+          }
+
+          // 2. Fetch all products tagged as 'fixed' (Fixed Essentials)
+          const fixedProducts = await tx.query.products.findMany({
+            where: and(
+              eq(products.subscriptionCategory, 'fixed'),
+              eq(products.status, 'active')
+            )
+          });
+
+          // 3. Extract selections IDs
+          const garnishIds: string[] = [];
+          const seasonalIds: string[] = [];
+          const regularIds: string[] = []; // cooking
+          const leafyIds: string[] = [];
+
+          if (selectionRecord) {
+            const dbSel = (selectionRecord.selections as any) || {};
+            if (Array.isArray(dbSel.garnish)) garnishIds.push(...dbSel.garnish);
+            if (Array.isArray(dbSel.seasonal)) seasonalIds.push(...dbSel.seasonal);
+            if (Array.isArray(dbSel.regular)) regularIds.push(...dbSel.regular);
+            if (Array.isArray(dbSel.leafy)) leafyIds.push(...dbSel.leafy);
+          }
+
+          // 4. Fallback defaults if selectionRecord was empty or user didn't make choices
+          const planName = sub.plan?.name ?? '';
+          let limits = { maxGarnish: 1, maxSeasonal: 3, maxCooking: 2, maxLeafy: 2 };
+          if (planName.includes('Medium')) {
+            limits = { maxGarnish: 2, maxSeasonal: 4, maxCooking: 3, maxLeafy: 3 };
+          } else if (planName.includes('Moderate')) {
+            limits = { maxGarnish: 3, maxSeasonal: 5, maxCooking: 4, maxLeafy: 4 };
+          }
+
+          const allActiveProducts = await tx.query.products.findMany({
+            where: and(eq(products.status, 'active'), isNull(products.deletedAt)),
+          });
+
+          if (garnishIds.length < limits.maxGarnish) {
+            const defaults = allActiveProducts.filter(p => p.subscriptionCategory === 'garnish').slice(0, limits.maxGarnish - garnishIds.length);
+            garnishIds.push(...defaults.map(d => d.id));
+          }
+          if (seasonalIds.length < limits.maxSeasonal) {
+            const defaults = allActiveProducts.filter(p => p.subscriptionCategory === 'seasonal').slice(0, limits.maxSeasonal - seasonalIds.length);
+            seasonalIds.push(...defaults.map(d => d.id));
+          }
+          if (regularIds.length < limits.maxCooking) {
+            const defaults = allActiveProducts.filter(p => p.subscriptionCategory === 'cooking').slice(0, limits.maxCooking - regularIds.length);
+            regularIds.push(...defaults.map(d => d.id));
+          }
+          if (leafyIds.length < limits.maxLeafy) {
+            const defaults = allActiveProducts.filter(p => p.subscriptionCategory === 'leafy').slice(0, limits.maxLeafy - leafyIds.length);
+            leafyIds.push(...defaults.map(d => d.id));
+          }
+
+          // 5. Gather all product records
+          const allProductIds = [...garnishIds, ...seasonalIds, ...regularIds, ...leafyIds];
+          let selectedProducts: any[] = [];
+          if (allProductIds.length > 0) {
+            selectedProducts = allActiveProducts.filter(p => allProductIds.includes(p.id));
+          }
+
+          // 6. Add Fixed Essentials to items list
+          for (const item of fixedProducts) {
+            itemsToInsert.push({
+              productId: item.id,
+              variantId: null,
+              quantity: 1,
+              price: '0.00',
+              taxPercent: '0.00',
+              taxAmount: '0.00',
+              discountAmount: '0.00',
+              finalPrice: '0.00',
+            });
+          }
+
+          // 7. Add Choices to items list (billed as 0 since order total matches plan price)
+          for (const item of selectedProducts) {
+            itemsToInsert.push({
+              productId: item.id,
+              variantId: null,
+              quantity: 1,
+              price: '0.00',
+              taxPercent: '0.00',
+              taxAmount: '0.00',
+              discountAmount: '0.00',
+              finalPrice: '0.00',
+            });
+          }
+
+          subtotal = parseFloat(sub.price);
+          taxAmount = 0;
+          totalAmount = subtotal;
+
+        } else {
+          // B. Fallback to existing logic for standard subscription items
+          const subItemsDetails = await tx.query.subscriptionItems.findMany({
+            where: eq(subscriptionItems.subscriptionId, sub.id),
+            with: {
+              product: true,
+              variant: true,
+            },
+          });
+
+          if (subItemsDetails.length === 0) return;
+
+          for (const item of subItemsDetails) {
+            const price = item.variant ? parseFloat(item.variant.sellingPrice) : parseFloat(item.product.sellingPrice);
+            const itemSubtotal = price * item.quantity;
+            const gstPercent = parseFloat(item.product.gstPercent);
+            const itemTax = itemSubtotal * (gstPercent / 100);
+
+            subtotal += itemSubtotal;
+            taxAmount += itemTax;
+
+            itemsToInsert.push({
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: item.quantity,
+              price: price.toFixed(2),
+              taxPercent: gstPercent.toFixed(2),
+              taxAmount: itemTax.toFixed(2),
+              discountAmount: '0.00',
+              finalPrice: itemSubtotal.toFixed(2),
+            });
+          }
+          totalAmount = subtotal + taxAmount;
+        }
 
         // Generate numbers
         const dateCompact = todayStr.replace(/-/g, '');

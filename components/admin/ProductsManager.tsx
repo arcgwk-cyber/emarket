@@ -39,6 +39,7 @@ interface Product {
   brand?: { name: string } | null;
   dietType?: string | null;
   dietaryPreferences?: string[] | null;
+  subscriptionCategory?: string | null;
 }
 
 interface Category {
@@ -103,6 +104,7 @@ export default function ProductsManager({
   const [stockAdjustment, setStockAdjustment] = useState('0');
   const [dietType, setDietType] = useState('veg');
   const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [subscriptionCategory, setSubscriptionCategory] = useState<string>('');
   
   // Image Manager states
   const [images, setImages] = useState<string[]>([]);
@@ -159,6 +161,7 @@ export default function ProductsManager({
     setStockAdjustment('0');
     setDietType('veg');
     setDietaryPreferences([]);
+    setSubscriptionCategory('');
     setImages([]);
     setImageLink('');
     setIsModalOpen(true);
@@ -183,6 +186,7 @@ export default function ProductsManager({
     setStockAdjustment(prod.stockType); // temporary store
     setDietType(prod.dietType || 'veg');
     setDietaryPreferences(prod.dietaryPreferences || []);
+    setSubscriptionCategory(prod.subscriptionCategory || '');
     setImages(prod.images || []);
     setImageLink('');
     setIsModalOpen(true);
@@ -328,6 +332,7 @@ export default function ProductsManager({
       stockAdjustment: editingProduct ? parseInt(stockAdjustment) : undefined,
       dietType,
       dietaryPreferences,
+      subscriptionCategory: subscriptionCategory || null,
     };
 
     try {
@@ -1051,6 +1056,22 @@ export default function ProductsManager({
                     );
                   })}
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] font-bold uppercase text-zinc-400">Subscription Basket Category</label>
+                <select
+                  value={subscriptionCategory}
+                  onChange={(e) => setSubscriptionCategory(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-zinc-200 bg-white text-xs font-semibold text-zinc-800 dark:border-zinc-850 dark:bg-zinc-900 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="">None (Not in subscription)</option>
+                  <option value="fixed">Fixed Essential (Onion, Tomato, etc.)</option>
+                  <option value="garnish">Garnish Choice (Lemon, Coriander, etc.)</option>
+                  <option value="seasonal">Seasonal Choice (500g veggie options)</option>
+                  <option value="cooking">Cooking Choice (250g veggie options)</option>
+                  <option value="leafy">Leafy Greens (Spinach, Methi, etc.)</option>
+                </select>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
