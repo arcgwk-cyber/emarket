@@ -19,7 +19,8 @@ import {
   User,
   Ticket,
   RefreshCw,
-  PackagePlus
+  PackagePlus,
+  QrCode
 } from 'lucide-react';
 
 interface AdminSidebarProps {
@@ -39,6 +40,7 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     { name: 'Products Catalog', href: '/admin/products', icon: Tag },
     { name: 'Categories Hierarchy', href: '/admin/categories', icon: FolderTree },
     { name: 'Order Management', href: '/admin/orders', icon: ClipboardList },
+    { name: 'Paperless Packing Hub', href: '/admin/fulfillment', icon: QrCode },
     { name: 'Delivery Dispatch', href: '/admin/deliveries', icon: Truck },
     { name: 'Cloud Kitchen Board', href: '/admin/kitchen', icon: Utensils },
     { name: 'Coupons & Promos', href: '/admin/coupons', icon: Ticket },
