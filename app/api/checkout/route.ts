@@ -272,9 +272,9 @@ export async function POST(request: Request) {
       const orderNumber = `ORD-${dateStr}-${paddedSeq}`;
       const invoiceNumber = `INV-${dateStr}-${paddedSeq}`;
 
-      // C. Insert Order
-      const initialStatus = validated.paymentMethod === 'cod' ? 'confirmed' : 'pending';
-      const initialPayStatus = validated.paymentMethod === 'cod' ? 'pending' : 'pending';
+      // C. Insert Order (All new orders are placed as PENDING until approved by admin/store manager)
+      const initialStatus = 'pending';
+      const initialPayStatus = 'pending';
 
       const [newOrder] = await tx
         .insert(orders)

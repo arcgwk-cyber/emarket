@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ShoppingBag, 
@@ -13,10 +13,11 @@ import {
   ChevronDown, 
   ChevronUp,
   ChevronLeft,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Clock
+  Check,
+  X,
+  Clock,
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -81,15 +82,85 @@ export default function OrdersDashboard({
   const [statusFilter, setStatusFilter] = useState(initialStatus);
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
 
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+  // Sound generator using Web Audio API to notify managers of new orders
+  const playNotificationSound = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // A5 note
+      osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.12);
+      
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch (e) {
+      console.warn('Web Audio API not supported or blocked by gesture');
+    }
+  };
+
+  // Background polling to fetch latest orders
+  useEffect(() => {
+    const pollOrders = async () => {
+      if (isPolling) return;
+      setIsPolling(true);
+      try {
+        const res = await fetch('/api/admin/orders?limit=50');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && Array.isArray(json.data)) {
+            // Check for new pending orders
+            const currentPendingIds = ordersList.filter(o => o.status === 'pending').map(o => o.id);
+            const incomingPending = json.data.filter((o: any) => o.status === 'pending' && !currentPendingIds.includes(o.id));
+            
+            if (incomingPending.length > 0) {
+              playNotificationSound();
+              setNewOrdersCount(prev => prev + incomingPending.length);
+            }
+
+            // Merge orders
+            setOrdersList(prev => {
+              const existingMap = new Map(prev.map(item => [item.id, item]));
+              json.data.forEach((o: any) => {
+                existingMap.set(o.id, o);
+              });
+              return Array.from(existingMap.values()).sort((a, b) => 
+                new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Error polling latest orders:', err);
+      } finally {
+        setIsPolling(false);
+      }
+    };
+
+    const interval = setInterval(pollOrders, 12000); // Poll every 12 seconds
+    return () => clearInterval(interval);
+  }, [ordersList, isPolling]);
+
+  // Handle order status updates (e.g. Accept / Cancel / Progress)
+  const handleUpdateStatus = async (orderId: string, newStatus: string, notes?: string) => {
     setUpdatingId(orderId);
 
     try {
       const res = await fetch('/api/admin/orders/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: newStatus }),
+        body: JSON.stringify({ orderId, status: newStatus, notes }),
       });
 
       const json = await res.json();
@@ -112,14 +183,15 @@ export default function OrdersDashboard({
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
-        return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30';
+        return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30 animate-pulse';
       case 'confirmed':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30';
       case 'preparing':
       case 'ready_for_dispatch':
       case 'out_for_delivery':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30';
+        return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30';
       case 'delivered':
-        return 'bg-zinc-150 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700';
+        return 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-350 dark:border-zinc-700';
       case 'cancelled':
       case 'failed':
         return 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30';
@@ -142,19 +214,30 @@ export default function OrdersDashboard({
     setExpandedOrderId(prev => (prev === orderId ? null : orderId));
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    router.push(`?q=${encodeURIComponent(searchQuery)}&status=${statusFilter}&page=1`);
-  };
-
-  const handleStatusFilterChange = (newStatus: string) => {
-    setStatusFilter(newStatus);
-    router.push(`?q=${encodeURIComponent(searchQuery)}&status=${newStatus}&page=1`);
-  };
-
   const handlePageChange = (page: number) => {
     router.push(`?q=${encodeURIComponent(searchQuery)}&status=${statusFilter}&page=${page}`);
   };
+
+  // Client-Side Dynamic filtering for lightning-fast search & tab performance
+  const filteredOrders = useMemo(() => {
+    return ordersList.filter(order => {
+      // 1. Text filter
+      const matchesText = searchQuery.trim() === '' || 
+        order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.recipientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.recipientMobile.includes(searchQuery);
+
+      // 2. Status tab filter
+      const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+      return matchesText && matchesStatus;
+    });
+  }, [ordersList, searchQuery, statusFilter]);
+
+  // Count active pending orders to display in the header badge
+  const pendingOrdersCount = useMemo(() => {
+    return ordersList.filter(o => o.status === 'pending').length;
+  }, [ordersList]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 font-sans">
@@ -177,52 +260,79 @@ export default function OrdersDashboard({
               Order Management
             </h1>
             <p className="text-xs text-zinc-500 mt-1 font-medium">
-              View and progress supermarket order statuses, inspect addresses, and track payment states.
+              Validate incoming orders, inspect line items, and track delivery updates in real-time.
             </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {isPolling && (
+              <span className="flex items-center gap-1 text-[10px] font-black text-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                <RefreshCw className="h-3 w-3 animate-spin" /> Syncing...
+              </span>
+            )}
+            {newOrdersCount > 0 && (
+              <button 
+                onClick={() => {
+                  setNewOrdersCount(0);
+                  playNotificationSound();
+                }}
+                className="flex items-center gap-1 text-[10px] font-black text-white bg-rose-500 px-3 py-1.5 rounded-full uppercase tracking-wider hover:bg-rose-600 active:scale-95 transition-all cursor-pointer shadow-sm animate-bounce"
+              >
+                🔔 {newOrdersCount} New Orders received
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Filters Panel */}
-        <form onSubmit={handleSearchSubmit} className="flex flex-col sm:flex-row items-center gap-4">
-          <div className="relative flex-1 w-full max-w-md">
-            <Search className="absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+        {/* Dynamic Status Tabs Filter for instant performance */}
+        <div className="flex flex-wrap gap-1.5 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+          {[
+            { id: 'all', label: 'All Orders' },
+            { id: 'pending', label: 'Pending Approval', badge: pendingOrdersCount, badgeColor: 'bg-amber-500 text-white font-black' },
+            { id: 'confirmed', label: 'Confirmed' },
+            { id: 'preparing', label: 'Preparing' },
+            { id: 'ready_for_dispatch', label: 'Ready for Dispatch' },
+            { id: 'out_for_delivery', label: 'Out for Delivery' },
+            { id: 'delivered', label: 'Delivered' },
+            { id: 'cancelled', label: 'Cancelled' },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                statusFilter === tab.id
+                  ? 'bg-zinc-900 text-white dark:bg-zinc-800'
+                  : 'hover:bg-zinc-100 text-zinc-500 hover:text-zinc-900 dark:hover:bg-zinc-850 dark:text-zinc-400'
+              }`}
+            >
+              {tab.label}
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-md text-[9px] ${tab.badgeColor || 'bg-zinc-200 text-zinc-700'}`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Fast Client Filter Search Input */}
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
-              placeholder="Search by order number or customer details..."
+              placeholder="Instant Search by order number, recipient name, phone..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-full rounded-full border border-zinc-200 bg-white pl-10 pr-4 text-xs font-medium outline-none transition-all focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
+              className="h-11 w-full rounded-2xl border border-zinc-200 bg-white pl-11 pr-4 text-xs font-semibold outline-none transition-all focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
             />
           </div>
-
-          <div className="w-full sm:w-48 shrink-0 flex gap-2">
-            <select
-              value={statusFilter}
-              onChange={(e) => handleStatusFilterChange(e.target.value)}
-              className="h-10 w-full rounded-xl border border-zinc-200 bg-white px-3 text-xs font-bold outline-none transition-all focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-900 dark:focus:border-emerald-500 dark:text-zinc-200"
-            >
-              <option value="all">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="preparing">Preparing</option>
-              <option value="ready_for_dispatch">Ready for Dispatch</option>
-              <option value="out_for_delivery">Out for Delivery</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-
-            <button
-              type="submit"
-              className="h-10 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold shadow-md cursor-pointer transition-all shrink-0"
-            >
-              Filter
-            </button>
-          </div>
-        </form>
+        </div>
 
         {/* Orders Table/List */}
         <div className="bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-3xl shadow-sm overflow-hidden">
-          {ordersList.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="p-12 text-center text-xs text-zinc-500 font-medium font-sans">
               No orders found matching criteria.
             </div>
@@ -242,7 +352,7 @@ export default function OrdersDashboard({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-50 dark:divide-zinc-800 text-xs font-semibold text-zinc-750 dark:text-zinc-300">
-                    {ordersList.map((order) => {
+                    {filteredOrders.map((order) => {
                       const isExpanded = expandedOrderId === order.id;
                       const isUpdating = updatingId === order.id;
 
@@ -264,20 +374,47 @@ export default function OrdersDashboard({
                               </span>
                             </td>
                             <td className="p-4">
-                              <select
-                                disabled={isUpdating}
-                                value={order.status}
-                                onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
-                                className="h-8 rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
-                              >
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="preparing">Preparing</option>
-                                <option value="ready_for_dispatch">Ready for Dispatch</option>
-                                <option value="out_for_delivery">Out for Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                              </select>
+                              {order.status === 'pending' ? (
+                                // Pulsing prominent Accept & Reject Action Buttons for Store Manager verification
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    disabled={isUpdating}
+                                    onClick={() => handleUpdateStatus(order.id, 'confirmed', 'Order accepted and confirmed by store manager.')}
+                                    className="flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-black tracking-wide shadow-sm hover:shadow active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <Check className="h-3 w-3" /> Accept
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isUpdating}
+                                    onClick={() => {
+                                      if (confirm('Decline and cancel order ' + order.orderNumber + '?')) {
+                                        handleUpdateStatus(order.id, 'cancelled', 'Order declined/cancelled by store manager.');
+                                      }
+                                    }}
+                                    className="flex items-center gap-1 bg-zinc-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-zinc-800 text-zinc-400 px-3 py-1.5 rounded-lg text-[10px] font-bold active:scale-95 transition-all cursor-pointer"
+                                  >
+                                    <X className="h-3 w-3" /> Decline
+                                  </button>
+                                </div>
+                              ) : (
+                                // Standard Dropdown for other status advancements
+                                <select
+                                  disabled={isUpdating}
+                                  value={order.status}
+                                  onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                                  className="h-8 rounded-lg border border-zinc-200 bg-white px-2 text-[10px] font-bold outline-none focus:border-emerald-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-200"
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="confirmed">Confirmed</option>
+                                  <option value="preparing">Preparing</option>
+                                  <option value="ready_for_dispatch">Ready for Dispatch</option>
+                                  <option value="out_for_delivery">Out for Delivery</option>
+                                  <option value="delivered">Delivered</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                              )}
                             </td>
                             <td className="p-4 pr-6 text-right">
                               <button
@@ -294,7 +431,7 @@ export default function OrdersDashboard({
                             <tr>
                               <td colSpan={7} className="p-0">
                                 <div className="px-5 pb-5 pt-1 border-t border-zinc-50 dark:border-zinc-850 bg-zinc-50/30 dark:bg-zinc-950/10 space-y-4">
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-zinc-655 dark:text-zinc-400">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-zinc-655 dark:text-zinc-450">
                                     
                                     {/* Shipping Address */}
                                     <div className="space-y-1.5">

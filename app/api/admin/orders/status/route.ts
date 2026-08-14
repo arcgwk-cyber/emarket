@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { orders, orderStatusHistory } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getCurrentUser, hasPermission } from '@/lib/services/auth';
-import { releaseReservedInventory } from '@/lib/services/inventory';
+import { releaseReservedInventory, commitReservedInventory } from '@/lib/services/inventory';
 import { z } from 'zod';
 
 const statusUpdateSchema = z.object({
@@ -65,6 +65,11 @@ export async function POST(request: Request) {
       // Set payment status based on delivery updates
       if (validated.status === 'delivered' && orderRecord.paymentMethod === 'cod') {
         payload.paymentStatus = 'paid';
+      }
+
+      // Confirming from pending status: Commit reserved inventory to physical sale
+      if (validated.status === 'confirmed' && orderRecord.status === 'pending') {
+        await commitReservedInventory(orderRecord.id, tx);
       }
 
       // If cancelling, handle inventory releases and potential refunds

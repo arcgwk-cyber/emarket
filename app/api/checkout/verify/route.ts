@@ -90,13 +90,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // 3. Signature is valid -> Confirm Order & Commit Stock Ledger inside SQL Transaction
+    // 3. Signature is valid -> Mark Payment as Paid (Keep Order as PENDING until approved by admin/store manager)
     await db.transaction(async (tx) => {
       // Update order
       await tx
         .update(orders)
         .set({
-          status: 'confirmed',
+          status: 'pending',
           paymentStatus: 'paid',
           updatedAt: new Date(),
         })
@@ -123,12 +123,9 @@ export async function POST(request: Request) {
       // Write status history log
       await tx.insert(orderStatusHistory).values({
         orderId: orderRecord.id,
-        status: 'confirmed',
-        notes: `Payment verification successful. Razorpay ID: ${validated.razorpayPaymentId}`,
+        status: 'pending',
+        notes: `Payment verification successful. Razorpay ID: ${validated.razorpayPaymentId}. Awaiting Admin confirmation.`,
       });
-
-      // Commit inventory stock dispatches
-      await commitReservedInventory(orderRecord.id, tx);
     });
 
     return NextResponse.json({
