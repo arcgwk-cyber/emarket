@@ -109,12 +109,21 @@ export async function PATCH(
           });
           
           if (invRecord) {
+            const newPhysicalStock = invRecord.physicalStock + adjustment;
             await tx.update(inventory)
               .set({
-                physicalStock: invRecord.physicalStock + adjustment,
+                physicalStock: newPhysicalStock,
                 updatedAt: new Date(),
               })
               .where(eq(inventory.id, invRecord.id));
+
+            // Sync stock changes to product_variants table (to prevent frontend out of stock mismatch)
+            await tx.update(productVariants)
+              .set({
+                stock: newPhysicalStock,
+                updatedAt: new Date(),
+              })
+              .where(eq(productVariants.productId, id));
           }
         }
       }

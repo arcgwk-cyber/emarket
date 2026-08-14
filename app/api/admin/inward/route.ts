@@ -72,6 +72,8 @@ export async function POST(request: Request) {
             )
       });
 
+      let newPhysicalStock = qty;
+
       if (!invRecord) {
         // Create new inventory record
         const [inserted] = await tx.insert(inventory).values({
@@ -84,14 +86,33 @@ export async function POST(request: Request) {
           maxStockThreshold: 500,
         }).returning();
         invRecord = inserted;
+        newPhysicalStock = qty;
       } else {
+        newPhysicalStock = invRecord.physicalStock + qty;
         // Update existing physical stock
         await tx.update(inventory)
           .set({
-            physicalStock: invRecord.physicalStock + qty,
+            physicalStock: newPhysicalStock,
             updatedAt: new Date(),
           })
           .where(eq(inventory.id, invRecord.id));
+      }
+
+      // Sync stock count to product_variants table (since frontend catalog reads variants.stock)
+      if (variantId) {
+        await tx.update(productVariants)
+          .set({
+            stock: newPhysicalStock,
+            updatedAt: new Date(),
+          })
+          .where(eq(productVariants.id, variantId));
+      } else {
+        await tx.update(productVariants)
+          .set({
+            stock: newPhysicalStock,
+            updatedAt: new Date(),
+          })
+          .where(eq(productVariants.productId, productId));
       }
 
       // 4. Log in inventoryTransactions
@@ -112,7 +133,7 @@ export async function POST(request: Request) {
 
       return {
         inventoryId: invRecord.id,
-        newStock: invRecord.physicalStock + qty,
+        newStock: newPhysicalStock,
       };
     });
 
