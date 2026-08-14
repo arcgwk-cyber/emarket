@@ -242,13 +242,9 @@ export default function ProductDetailWrapper({
         <div className="flex flex-col gap-5 w-full">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-              {product.brand ? (
+              {product.brand && (
                 <span className="text-xs font-bold text-zinc-500 underline cursor-pointer hover:text-emerald-500 transition-colors uppercase tracking-wider">
                   {product.brand.name}
-                </span>
-              ) : (
-                <span className="text-xs font-bold text-zinc-500 underline cursor-pointer hover:text-emerald-500 transition-colors">
-                  fresho!
                 </span>
               )}
               
@@ -374,7 +370,7 @@ export default function ProductDetailWrapper({
                   </button>
                 </div>
 
-                {/* Add to Basket button (bright red) */}
+                {/* Add to Cart button (bright red) */}
                 <button
                   onClick={handleAddToCart}
                   className={`flex-1 rounded-xl active:scale-95 text-white text-xs font-black py-3.5 shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
@@ -384,7 +380,7 @@ export default function ProductDetailWrapper({
                   }`}
                 >
                   <ShoppingCart className="h-4.5 w-4.5" />
-                  {isAdded ? 'Added to Basket ✓' : 'Add to basket'}
+                  {isAdded ? 'Added to Cart ✓' : 'Add to Cart'}
                 </button>
               </>
             )}
