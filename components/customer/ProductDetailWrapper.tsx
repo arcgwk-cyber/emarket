@@ -460,9 +460,6 @@ export default function ProductDetailWrapper({
                         </div>
 
                         <div className="flex items-center gap-2">
-                          <span className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-zinc-105 text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200/40 dark:border-zinc-700/40">
-                            ⚡ 10 MINS
-                          </span>
                           {isSelected && (
                             <span className="text-green-600 dark:text-green-500 text-xs font-black">
                               ✓
@@ -508,9 +505,6 @@ export default function ProductDetailWrapper({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-zinc-100 text-zinc-650 dark:bg-zinc-800 dark:text-zinc-400 border border-zinc-200/40 dark:border-zinc-700/40">
-                      ⚡ 10 MINS
-                    </span>
                     <span className="text-green-600 dark:text-green-500 text-xs font-black">
                       ✓
                     </span>
