@@ -30,6 +30,14 @@ export async function POST(request: Request) {
     // Sync auth user with internal PostgreSQL database
     const profile = await syncOrCreateDbUser(data.user);
 
+    if (profile.status === 'blocked') {
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { success: false, message: 'Your account has been suspended by administration.', code: 'ACCOUNT_BLOCKED' },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Login successful',

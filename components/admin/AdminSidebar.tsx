@@ -46,6 +46,9 @@ export default function AdminSidebar({ user }: AdminSidebarProps) {
     { name: 'Coupons & Promos', href: '/admin/coupons', icon: Ticket },
     { name: 'Returns & Refunds', href: '/admin/returns', icon: RefreshCw },
     { name: 'Bulk Stock Inward', href: '/admin/inward', icon: PackagePlus },
+    ...(user.roles.includes('Super Admin') || user.roles.includes('Admin')
+      ? [{ name: 'User Management', href: '/admin/users', icon: User }]
+      : []),
     { name: 'Platform Settings', href: '/admin/settings', icon: Settings },
   ];
 

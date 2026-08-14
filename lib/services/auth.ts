@@ -40,6 +40,12 @@ export async function getCurrentUser(): Promise<UserSessionProfile | null> {
       return await syncOrCreateDbUser(user);
     }
 
+    if (dbUser.status === 'blocked') {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+      return null;
+    }
+
     return {
       id: dbUser.id,
       email: dbUser.email,
