@@ -245,7 +245,7 @@ export async function POST(request: Request) {
           const available = physical - reserved;
 
           if (available < item.quantity) {
-            throw new Error(`OUT_OF_STOCK:${item.product.name}`);
+            throw new Error(`OUT_OF_STOCK:${item.product.name}:${item.id}`);
           }
 
           // Update reserved stock
@@ -351,9 +351,16 @@ export async function POST(request: Request) {
     
     // Catch custom thrown inventory errors
     if (error.message && error.message.startsWith('OUT_OF_STOCK:')) {
-      const productName = error.message.split(':')[1];
+      const parts = error.message.split(':');
+      const productName = parts[1];
+      const cartItemId = parts[2];
       return NextResponse.json(
-        { success: false, message: `Insufficient stock for product: ${productName}. Please adjust quantities.`, code: 'OUT_OF_STOCK' },
+        { 
+          success: false, 
+          message: `Insufficient stock for product: ${productName}.`, 
+          code: 'OUT_OF_STOCK',
+          data: { cartItemId, productName }
+        },
         { status: 400 }
       );
     }

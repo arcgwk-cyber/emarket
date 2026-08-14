@@ -201,7 +201,33 @@ export default function CheckoutFlow({
           origin: { y: 0.6 }
         });
       } else {
-        setErrorMsg(json.message || 'Failed to place order');
+        if (json.code === 'OUT_OF_STOCK' && json.data?.cartItemId) {
+          const confirmRemove = window.confirm(
+            `${json.message} Would you like to remove this item from your cart so you can proceed to checkout with the remaining items?`
+          );
+          if (confirmRemove) {
+            try {
+              setLoading(true);
+              const deleteRes = await fetch(`/api/cart?id=${json.data.cartItemId}`, {
+                method: 'DELETE',
+              });
+              if (deleteRes.ok) {
+                router.refresh();
+                setErrorMsg('Item removed from your cart. Please review your order summary and click "Place Order" again.');
+              } else {
+                setErrorMsg('Failed to remove the item from your cart. Please try manually.');
+              }
+            } catch (err) {
+              setErrorMsg('Error removing item from cart.');
+            } finally {
+              setLoading(false);
+            }
+          } else {
+            setErrorMsg(json.message);
+          }
+        } else {
+          setErrorMsg(json.message || 'Failed to place order');
+        }
       }
     } catch (e) {
       setErrorMsg('Network error. Please try again.');
