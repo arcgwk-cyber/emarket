@@ -468,7 +468,7 @@ export default function CatalogWrapper({
                         />
                         {isOutOfStock && (
                           <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded-lg">
-                            <span className="bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
+                            <span className="bg-rose-600 text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider shadow-sm">
                               Out of Stock
                             </span>
                           </div>
@@ -480,7 +480,7 @@ export default function CatalogWrapper({
                           {prod.category.name}
                         </span>
                         {prod.dietaryPreferences && prod.dietaryPreferences.map((tag) => (
-                          <span key={tag} className="text-[8px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1 py-0.2 rounded border border-emerald-100/30">
+                          <span key={tag} className="text-[8px] font-bold uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-1 py-0.2 rounded border border-emerald-100/30">
                             {tag}
                           </span>
                         ))}
@@ -514,7 +514,7 @@ export default function CatalogWrapper({
                               <button
                                 key={v.id}
                                 onClick={() => setSelectedVariants(prev => ({ ...prev, [prod.id]: v }))}
-                                className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wide border transition-all cursor-pointer ${
+                                className={`px-2 py-0.5 rounded text-[9px] font-semibold tracking-wide border transition-all cursor-pointer ${
                                   isSelected
                                     ? 'bg-emerald-500 text-white border-emerald-500 shadow-sm'
                                     : isVariantOutOfStock
